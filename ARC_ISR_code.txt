@@ -1,0 +1,37 @@
+import RPi.GPIO as gpio #get GPIO Library
+import time             #get sleep function to delay loop and possibly detect time
+
+def setup():
+	gpioPWM(user_gpio,255) #sets GPIO user_gpio full on
+	gpioSetmode(GPIO.BOARD) #Use Raspberry Pi Board Pin Numbers
+	gpioSetMode(11,PI.OUTPUT) #Set pin 11 as output
+	gpioSetMode(7,PI.INPUT) #Set pin 7 as input
+
+
+
+if __name__ == '__main__':
+	pgioInitialise() #Must be called before all other lib funcs
+	
+	#somehow set up global variable to keep count of time in ms when this function is called
+	
+	gpioSetISRFunc(GPIOnum, RISING_EDGE, 1, ISR); //calls ISR with the variables before it.
+	
+	#Change gpionum to whatever pgio to refer to, timeout is interrupt timeout
+	#int gpioSetISRFunc(unsigned gpio, unsigned edge, int timeout, gpioISRFunc_t f)
+	#Returns 0 if OK, otherwise PI_BAD_GPIO, PI_BAD_EDGE, or PI_BAD_ISR_INIT. 
+
+
+
+def ISR(int gpio, int level, uint32_t tick):
+	#Do something with gpioGetPWMDutycycle(user_pgio)
+	dutycycle = gpioGetPWMDutycycle(user_pgio)
+	
+	
+	
+#do you want to pgioSetPWMrange(pgio,range)? (norm is 255)
+//Type 3 Model Pi3B
+
+
+#ignore
+#include <stdio.h>
+#include <pigpio.h>
