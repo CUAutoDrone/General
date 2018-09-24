@@ -23,6 +23,16 @@ if __name__ == '__main__':
 
 
 def ISR(int gpio, int level, uint32_t tick):
+	uint32_t startTick, endTick
+	int diffTick
+	if(level == 1)
+		startTick = gpio.gpioTicks()
+	elif(level == 2 & startTick!=null)
+		DiffTick = gpio.gpioTick() - startTick
+#global variable assigned by difftick
+# Tick is the number of microseconds since system boot. 
+# As tick is an unsigned 32 bit quantity it wraps around after 
+# 2^32 microseconds, which is approximately 1 hour 12 minutes. 
 	#Do something with gpioGetPWMDutycycle(user_pgio)
 	dutycycle = gpioGetPWMDutycycle(user_pgio)
 	
@@ -35,3 +45,6 @@ def ISR(int gpio, int level, uint32_t tick):
 #ignore
 #include <stdio.h>
 #include <pigpio.h>
+
+
+https://sourceforge.net/p/raspberry-gpio-python/wiki/PWM/
