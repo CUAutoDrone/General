@@ -1,5 +1,6 @@
-t = tcpclient('192.168.2.2',9989)
+t = tcpclient('192.168.2.3',9989);
 while(true)
 data = read(t);
-disp(data)
+str = native2unicode(data, 'UTF-8');
+disp(str)
 end
