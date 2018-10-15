@@ -14,9 +14,9 @@ MOTOR3 = 25 #GPIO 22
 MOTOR4 = 8 #GPIO 24
 
 #PID GAINS (roll, pitch, yaw rate)
-Kp = np.array([3,3,3])
-Ki = np.array([.02,.02,.02])
-Kd = np.array([.4,.4,.4])
+Kp = np.array([0.05,0.05,0.05])
+Ki = np.array([0,0,0])
+Kd = np.array([0,0,0])
 
 #MPU6050 REGISTERS
 MPU6050_ADDR = 0x68
@@ -267,7 +267,7 @@ def cbf5(gpio,level,tick):
 		if width>0:
 			#divide by 1000 to get milliseconds
 			pulse_width_ch5 = width/1000	
-			if pulse_width_ch5 > 1.5:
+			if pulse_width_ch5 > 1.4:
 				ARM = 1
 			else:
 				ARM = 0
@@ -294,10 +294,10 @@ def map_control_input():
 	return np.array([roll, pitch, yaw, throttle, arm])
 
 def map_motor_output(ctrl):
-	throttle  = ctrl[1]
-	roll = ctrl[2]
-	pitch = ctrl[3]
-	yawrate = ctrl[4]
+	throttle  = ctrl[0]
+	roll = ctrl[1]
+	pitch = ctrl[2]
+	yawrate = ctrl[3]
 
 	m1 = throttle-roll+pitch-yawrate
 	m2 = throttle-roll-pitch+yawrate
@@ -306,17 +306,16 @@ def map_motor_output(ctrl):
 	return minMax(np.array([m1,m2,m3,m4]),1,2)
 
 def minMax(vec,min,max):
-	for i in range(0,np.size(vec)-1):
+	for i in range(0,np.size(vec)):
 		if vec[i]<min:
 			vec[i] = min
-		else if vec[i]>max:
-			vec[i] = max
-		return vec
+		elif vec[i]>max:
+			vec[i] = max	
+	return vec
 
 
 def set_motor_pulse(pi,gpio, timems):
-	pi.set_PWM_frequency(gpio,50)
-	pi.set_PWM_dutycycle(4,timems/20*255)
+	pi.set_PWM_dutycycle(gpio,timems/2.5*255)
 
 def can_arm():
 	canarm = True
@@ -332,7 +331,6 @@ def arm(pi):
 	set_motor_pulse(pi,MOTOR2,1)
 	set_motor_pulse(pi,MOTOR3,1)
 	set_motor_pulse(pi,MOTOR4,1)
-
 
 
 #--------------------------------------
@@ -358,6 +356,10 @@ pi.set_mode(MOTOR1,pigpio.OUTPUT)
 pi.set_mode(MOTOR2,pigpio.OUTPUT)
 pi.set_mode(MOTOR3,pigpio.OUTPUT)
 pi.set_mode(MOTOR4,pigpio.OUTPUT)
+pi.set_PWM_frequency(MOTOR1,400)
+pi.set_PWM_frequency(MOTOR2,400)
+pi.set_PWM_frequency(MOTOR3,400)
+pi.set_PWM_frequency(MOTOR4,400)
 
 #setup IMU
 MPU6050_handle,acc_offsets,gyro_offsets = setupMPU6050(pi)
@@ -369,15 +371,15 @@ euler_state = np.array([0,0])
 while(True):
 
 	#send zero signal to motors
-	set_motor_pulse(pi,MOTOR1,0)
-	set_motor_pulse(pi,MOTOR2,0)
-	set_motor_pulse(pi,MOTOR3,0)
-	set_motor_pulse(pi,MOTOR4,0)
+	set_motor_pulse(pi,MOTOR1,1)
+	set_motor_pulse(pi,MOTOR2,1)
+	set_motor_pulse(pi,MOTOR3,1)
+	set_motor_pulse(pi,MOTOR4,1)
 
 	#wait for arm
 	armed= 0
 	while(armed==0):
-		if ARM = 1:
+		if ARM == 1:
 			#perform preflight checks
 			canarm = can_arm()
 			if canarm:
@@ -391,34 +393,52 @@ while(True):
 	sys_time = pi.get_current_tick()
 
 	#flight loop
-	while(ARM = 1):
+	while(ARM == 1):
+
 		#Get Delta Time
 		sys_time_new = pi.get_current_tick()
 		dt = (sys_time_new-sys_time)/1e6
+		#correct for rollover
 		if dt<0:
 			dt=0
 		sys_time = sys_time_new
 
+		# #Maps control input into angles
 		control_angles = map_control_input()
 
-		sys_time_new = pi.get_current_tick()
+		#Get accelerometer and gyroscope data and compute angles
 		accel_data = get_acceleration_data(pi,MPU6050_handle)-acc_offsets
 		gyro_data = get_gyroscope_data(pi,MPU6050_handle)-gyro_offsets
 		euler_state = calculate_angles(pi,accel_data,gyro_data,dt,euler_state)
 
-		err = np.array([control_anlges[0]-euler_state[0],
-						control_angles[1]-euler_state[1],
-						control_angles[2]-gyro_data[2]])
+		#Compute errors in pitch and roll and yawrate
+		#err = np.array([control_angles[0]-euler_state[0],
+		# 				control_angles[1]-euler_state[1],
+		# 				control_angles[2]-gyro_data[2]])
+		err = np.array([0-euler_state[0],
+		 				0-euler_state[1],
+		 				0])
 
+		#compute error integral
 		err_sum = err_sum+err
+		#PID law
 		if is_first_loop == 0:
-			u = np.dot(Kp,err)+np.dot(Ki,dt*err_sum)
+		 	u = np.multiply(Kp,err)+np.multiply(Ki,dt*err_sum)
 		else:
-			u = np.dot(Kp,err)+np.dot(Ki,dt*err_sum)+np.dot(Kd,(err-prev_err)/dt)
+			u = np.multiply(Kp,err)+np.multiply(Ki,dt*err_sum)+np.multiply(Kd,(err-prev_err)/dt)
 		prev_err = err
 
+		#Map controls into vector
 		ctrl = np.array([control_angles[3],u[0],u[1],u[2]])
-		wm = 
+
+		#Map control angles into output signal and set motors
+		wm = map_motor_output(ctrl)
+		print(wm)
+		set_motor_pulse(pi,MOTOR1,wm[0])
+		set_motor_pulse(pi,MOTOR2,wm[1])
+		set_motor_pulse(pi,MOTOR3,wm[2])
+		set_motor_pulse(pi,MOTOR4,wm[3])
+
 
 
 
