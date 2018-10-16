@@ -1,4 +1,4 @@
-clear all;
+clearvars;
 
 %Simulation Parameters
 %Global simulation start and stop times
@@ -12,7 +12,7 @@ g = 9.806;
 %helper quantities
 times = start_time:dt:end_time;
 N = numel(times);
-step = 0; %timestep counter
+step = 1; %timestep counter
 sum = [0;0;0]; %integral summer
 
 %Drone Physical Properties
@@ -26,11 +26,12 @@ L = R/sqrt(2); %m
 %propellor drag coefficient
 rho = 1.225; %kg/m^3
 Cp = 0.025;
-b = 0.5*rho*R^3*0.025;
+%b = 0.5*rho*R^3*0.025;
 b=0;
+
 %propellor torque coefficient
 w_max = 7330;
-w_max = 5000;
+%w_max = 5000;
 %k = 1.862e-8; %kg s^2
 k = 1.862e-6;
 %quadcopter mass
@@ -38,14 +39,14 @@ m = 2.568; %kg
 rcm = [.02577e-3;-11.281e-3;-3.49e-9];
 
 %Controller properties
-Kp = [.1;0;0];
+Kp = [25;25;0];
 Ki = [0;0;0];
-Kd = [0;0;0];
+Kd = [0.58;0.58;0];
 
 %initial conditions
 x = [0; 0; 10]; %initial position, m
 xdot = zeros(3,1); %initial velocity, m/s
-theta = [deg2rad(20);0;0]; %initial angular position, in 3-2-1 euler
+theta = [deg2rad(20);deg2rad(10);0]; %initial angular position, in 3-2-1 euler
 omega = [0;0;0]; %some disturbance in angular velocity
 
 %desired angle
@@ -60,7 +61,7 @@ ctrl_to_uc = [1 -1 1 -1;
             1 1 1 1];
 
 %Plot Parameters
-states = rad2deg(theta);
+states = zeros(3, N);
 
 %Vis Stuff
 Copter_Model = [1 -1 -1 1;
@@ -75,7 +76,7 @@ for time = start_time:dt:end_time
     err = theta_r-theta;
     sum = sum+err;
     
-    if step == 0
+    if step == 1
         u = Kp.*err+Ki.*sum*dt;
     else
         u = Kp.*err+Ki.*sum*dt+Kd.*(err-prev_err)/dt;
@@ -99,14 +100,21 @@ for time = start_time:dt:end_time
     omega(2) = y(end,5);
     omega(3) = y(end,6);
     
-    states = [states rad2deg(theta)];
+    states(1:3, step) = rad2deg(theta);
     Copter_Model_TH = cat(3,Copter_Model_TH,euler_rotate(Copter_Model,theta));
     %disp(rad2deg(theta))
     step = step+1;
        
 end
-figure
-plot(times,(states(1,2:end)))
+
+figure;
+
+hold on;
+roll = plot(times,(states(1,:)));
+pitch = plot(times,(states(2,:)));
+yaw = plot(times,(states(3,:)));
+legend([roll, pitch, yaw], ["roll err", "pitch err", "yaw err"]);
+hold off;
 
 %3D Animation
 % figure;
@@ -152,9 +160,9 @@ function omegadot = angular_acceleration(wm, omega, theta, I, L, b, k,rcm,m,g)
     tau_motors = [L*k*(-wm(1)^2-wm(2)^2+wm(3)^2+wm(4)^2);
         L*k*(wm(1)^2-wm(2)^2-wm(3)^2+wm(4)^2);
         b*(-wm(1)^2+wm(2)^2-wm(3)^2+wm(4)^2)];
-    tau = tau_motors;%+tau_grav;
+    tau = tau_motors+tau_grav;
     %disp(tau)
-    omegadot = inv(I)*(tau -cross(omega,I*omega));
+    omegadot = I\(tau -cross(omega,I*omega));
 end
 
 function thetadot = omega_to_thetadot(omega,theta)
