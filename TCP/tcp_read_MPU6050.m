@@ -1,4 +1,6 @@
-t = tcpclient('192.168.2.2',9995);
+%t = tcpclient('192.168.137.175',9995);
+t = tcpip('192.168.137.175',9995);
+fopen(t);
 fig = figure
 hold on
 times = [0];
@@ -8,7 +10,8 @@ p.XDataSource = 'times';
 p.YDataSource = 'axs';
 tic
 while(true)
-    data = read(t,8);
+    data = fread(t,8);
+    flushinput(t);
     str = native2unicode(data, 'UTF-8');
     ax = str2double(strtrim(str));
     times = [times toc];
