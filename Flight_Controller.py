@@ -424,6 +424,7 @@ while(True):
 		#PID law
 		if is_first_loop == 0:
 		 	u = np.multiply(Kp,err)+np.multiply(Ki,dt*err_sum)
+			is_first_loop = 1
 		else:
 			u = np.multiply(Kp,err)+np.multiply(Ki,dt*err_sum)+np.multiply(Kd,(err-prev_err)/dt)
 		prev_err = err
