@@ -103,75 +103,75 @@ class FlightController(object):
         # setup IMU
         imu.MPU6050_handle, imu.acc_offsets, imu.gyro_offsets = imu.setupMPU6050(pi)
 
-    # machine loop
-    while (True):
-         set_motor_pulse(pi, MOTOR1, 1)
-         set_motor_pulse(pi, MOTOR2, 1)
-         set_motor_pulse(pi, MOTOR3, 1)
-         set_motor_pulse(pi, MOTOR4, 1)
+        # machine loop
+        while (True):
+             motor.set_motor_pulse(pi, motor.MOTOR1, 1)
+             motor.set_motor_pulse(pi, motor.MOTOR2, 1)
+             motor.set_motor_pulse(pi, motor.MOTOR3, 1)
+             motor.set_motor_pulse(pi, motor.MOTOR4, 1)
 
-        # ^ is this redundant? does the same thing as Motor.arm(pi)
+            # ^ is this redundant? does the same thing as Motor.arm(pi)
 
-        # wait for arm
-        fc.armed = False
-        while (fc.armed == False):
-            if Receiver.ARM == True:
-                # perform preflight checks
-                canarm = Receiver.can_arm()
-                if canarm:
-                    Motor.arm(pi)
-                    fc.armed = True
+            # wait for arm
+            fc.armed = False
+            while (fc.armed == False):
+                if Receiver.ARM == True:
+                    # perform preflight checks
+                    canarm = Receiver.can_arm()
+                    if canarm:
+                        Motor.arm(pi)
+                        fc.armed = True
 
-        # Initialize PID Control
-        is_first_loop = 0
-        err_sum = 0
-        sys_time = pi.get_current_tick()
+            # Initialize PID Control
+            is_first_loop = 0
+            err_sum = 0
+            sys_time = pi.get_current_tick()
 
-        # flight loop
+            # flight loop
 
-        while (Receiver.ARM == 1):
-            # Get Delta Time
-            sys_time_new = pi.get_current_tick()
-            dt = (sys_time_new - sys_time) / 1e6
-            # correct for rollover
-            if dt < 0:
-                dt = 0
-            sys_time = sys_time_new
+            while (Receiver.ARM == 1):
+                # Get Delta Time
+                sys_time_new = pi.get_current_tick()
+                dt = (sys_time_new - sys_time) / 1e6
+                # correct for rollover
+                if dt < 0:
+                    dt = 0
+                sys_time = sys_time_new
 
-            # Maps control input into angles
-            control_angles = Receiver.map_control_input()
+                # Maps control input into angles
+                control_angles = Receiver.map_control_input()
 
-            # Get accelerometer and gyroscope data and compute angles
-            accel_data = imu.get_acceleration_data(pi, MPU6050_handle) - acc_offsets
-            gyro_data = imu.get_gyroscope_data(pi, MPU6050_handle) - gyro_offsets
-            euler_state = fc.calculate_angles(pi, accel_data, gyro_data, dt, euler_state)
+                # Get accelerometer and gyroscope data and compute angles
+                accel_data = imu.get_acceleration_data(pi, MPU6050_handle) - acc_offsets
+                gyro_data = imu.get_gyroscope_data(pi, MPU6050_handle) - gyro_offsets
+                euler_state = fc.calculate_angles(pi, accel_data, gyro_data, dt, euler_state)
 
-            # Compute errors in pitch and roll and yaw rate
-            err = np.array([0 - euler_state[0],
-                            0 - euler_state[1],
-                            0])
+                # Compute errors in pitch and roll and yaw rate
+                err = np.array([0 - euler_state[0],
+                                0 - euler_state[1],
+                                0])
 
-            # compute error integral
-            err_sum = err_sum + err
+                # compute error integral
+                err_sum = err_sum + err
 
-            # PID law
-            if is_first_loop == 0:
-                u = np.multiply(Kp, err) + np.multiply(Ki, dt * err_sum)
-                is_first_loop = 1
-            else:
-                u = np.multiply(Kp, err) + np.multiply(Ki, dt * err_sum) + np.multiply(Kd, (err - prev_err) / dt)
-            prev_err = err
+                # PID law
+                if is_first_loop == 0:
+                    u = np.multiply(Kp, err) + np.multiply(Ki, dt * err_sum)
+                    is_first_loop = 1
+                else:
+                    u = np.multiply(Kp, err) + np.multiply(Ki, dt * err_sum) + np.multiply(Kd, (err - prev_err) / dt)
+                prev_err = err
 
-            # Map controls into vector
-            ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
+                # Map controls into vector
+                ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
 
-            # Map control angles into output signal and set motors
-            wm = map_motor_output(ctrl)
-            print(wm)
-            Motor.set_motor_pulse(pi, Motor.MOTOR1, wm[0])
-            Motor.set_motor_pulse(pi, Motor.MOTOR2, wm[1])
-            Motor.set_motor_pulse(pi, Motor.MOTOR3, wm[2])
-            Motor.set_motor_pulse(pi, Motor.MOTOR4, wm[3])
+                # Map control angles into output signal and set motors
+                wm = map_motor_output(ctrl)
+                print(wm)
+                Motor.set_motor_pulse(pi, Motor.MOTOR1, wm[0])
+                Motor.set_motor_pulse(pi, Motor.MOTOR2, wm[1])
+                Motor.set_motor_pulse(pi, Motor.MOTOR3, wm[2])
+                Motor.set_motor_pulse(pi, Motor.MOTOR4, wm[3])
 
 
 # a class representing the IMU
@@ -372,7 +372,7 @@ class Receiver:
         # If rising edge, store time
         if level == 1:
             rising_1 = tick
-        # If fallign edge, subtract out rising time to get pusle width
+        # If falling edge, subtract out rising time to get pusle width
         elif level == 0:
 
             width = tick - rising_1
@@ -389,7 +389,7 @@ class Receiver:
         # If rising edge, store time
         if level == 1:
             rising_2 = tick
-        # If fallign edge, subtract out rising time to get pusle width
+        # If falling edge, subtract out rising time to get pusle width
         elif level == 0:
 
             width = tick - rising_2
