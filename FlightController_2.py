@@ -129,7 +129,7 @@ class FlightController(object):
                     # perform pre-flight checks
                     canarm = receiver.can_arm()
                     if canarm:
-                        Motor.arm(pi)
+                        motor.arm(pi)
                         self.armed(True)
 
             # Initialize PID Control
@@ -149,16 +149,16 @@ class FlightController(object):
                 sys_time = sys_time_new
 
                 # Maps control input into angles
-                control_angles = Receiver.map_control_input()
+                control_angles = receiver.map_control_input()
 
                 # Get accelerometer and gyroscope data and compute angles
                 accel_data = imu.get_acceleration_data(pi, MPU6050_handle) - acc_offsets
                 gyro_data = imu.get_gyroscope_data(pi, MPU6050_handle) - gyro_offsets
-                euler_state = fc.calculate_angles(pi, accel_data, gyro_data, dt, euler_state)
+                imu.euler_state = fc.calculate_angles(pi, accel_data, gyro_data, dt, imu.euler_state)
 
                 # Compute errors in pitch and roll and yaw rate
-                err = np.array([0 - euler_state[0],
-                                0 - euler_state[1],
+                err = np.array([0 - imu.euler_state[0],
+                                0 - imu.euler_state[1],
                                 0])
 
                 # compute error integral
@@ -178,18 +178,17 @@ class FlightController(object):
                 # Map control angles into output signal and set motors
                 wm = map_motor_output(ctrl)
                 print(wm)
-                Motor.set_motor_pulse(pi, Motor.MOTOR1, wm[0])
-                Motor.set_motor_pulse(pi, Motor.MOTOR2, wm[1])
-                Motor.set_motor_pulse(pi, Motor.MOTOR3, wm[2])
-                Motor.set_motor_pulse(pi, Motor.MOTOR4, wm[3])
+                motor.set_motor_pulse(pi, motor.MOTOR1, wm[0])
+                motor.set_motor_pulse(pi, motor.MOTOR2, wm[1])
+                motor.set_motor_pulse(pi, motor.MOTOR3, wm[2])
+                motor.set_motor_pulse(pi, motor.MOTOR4, wm[3])
 
 
 # a class representing the IMU
 class IMU(object):
     def __init__(self, MPU6050_ADDR):
         self.MPU6050_ADDR = MPU6050_ADDR
-
-    euler_state = np.array([0, 0])
+        euler_state = np.array([0, 0])
 
     def setupMPU6050(pi):
         # opens connection at I2C bus 1
@@ -382,7 +381,7 @@ class Receiver:
         # If rising edge, store time
         if level == 1:
             rising_1 = tick
-        # If falling edge, subtract out rising time to get pusle width
+        # If falling edge, subtract out rising time to get pulse width
         elif level == 0:
 
             width = tick - rising_1
@@ -399,7 +398,7 @@ class Receiver:
         # If rising edge, store time
         if level == 1:
             rising_2 = tick
-        # If falling edge, subtract out rising time to get pusle width
+        # If falling edge, subtract out rising time to get pulse width
         elif level == 0:
 
             width = tick - rising_2
@@ -416,7 +415,7 @@ class Receiver:
         # If rising edge, store time
         if level == 1:
             rising_3 = tick
-        # If falling edge, subtract out rising time to get pusle width
+        # If falling edge, subtract out rising time to get pulse width
         elif level == 0:
 
             width = tick - rising_3
@@ -451,7 +450,7 @@ class Receiver:
         # If rising edge, store time
         if level == 1:
             rising_5 = tick
-        # If fallign edge, subtract out rising time to get pusle width
+        # If falling edge, subtract out rising time to get pulse width
         elif level == 0:
 
             width = tick - rising_5
