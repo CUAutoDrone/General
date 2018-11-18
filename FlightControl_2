@@ -113,7 +113,6 @@ class FlightController(object):
             # ^ is this redundant? does the same thing as Motor.arm(pi)
 
             # wait for arm
-            fc.armed = False
             while (fc.armed == False):
                 if Receiver.ARM == True:
                     # perform preflight checks
