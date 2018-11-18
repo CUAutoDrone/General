@@ -18,6 +18,17 @@ class FlightController(object):
         self.Kd = Kd_gain
         armed = False
 
+    # getter for armed status
+    @property
+    def armed(self):
+        return self._armed
+
+    # setter for armed status
+    @armed.setter
+    def armed(self, armed):
+        self._armed = armed
+
+
     # getter for proportional gain
     @property
     def Kp(self):
@@ -60,7 +71,7 @@ class FlightController(object):
         pitch_acc = np.arctan2(-accel_data_rad[0],
                                np.sqrt(np.power(accel_data_rad[1], 2) + np.power(accel_data_rad[2], 2)))
 
-        # Complimenatry Filter
+        # Complementary Filter
         acc_angles = np.array([roll_acc * 180 / np.pi, pitch_acc * 180 / np.pi])
         gyro_pr = np.array([gyro_data[0], gyro_data[1]])
 
@@ -105,21 +116,21 @@ class FlightController(object):
 
         # machine loop
         while (True):
-             motor.set_motor_pulse(pi, motor.MOTOR1, 1)
-             motor.set_motor_pulse(pi, motor.MOTOR2, 1)
-             motor.set_motor_pulse(pi, motor.MOTOR3, 1)
-             motor.set_motor_pulse(pi, motor.MOTOR4, 1)
+            motor.set_motor_pulse(pi, motor.MOTOR1, 1)
+            motor.set_motor_pulse(pi, motor.MOTOR2, 1)
+            motor.set_motor_pulse(pi, motor.MOTOR3, 1)
+            motor.set_motor_pulse(pi, motor.MOTOR4, 1)
 
             # ^ is this redundant? does the same thing as Motor.arm(pi)
 
             # wait for arm
-            while (fc.armed == False):
-                if Receiver.ARM == True:
-                    # perform preflight checks
-                    canarm = Receiver.can_arm()
+            while (self.armed == False):
+                if receiver.ARM == True:
+                    # perform pre-flight checks
+                    canarm = receiver.can_arm()
                     if canarm:
                         Motor.arm(pi)
-                        fc.armed = True
+                        self.armed(True)
 
             # Initialize PID Control
             is_first_loop = 0
@@ -128,7 +139,7 @@ class FlightController(object):
 
             # flight loop
 
-            while (Receiver.ARM == 1):
+            while (receiver.ARM == 1):
                 # Get Delta Time
                 sys_time_new = pi.get_current_tick()
                 dt = (sys_time_new - sys_time) / 1e6
@@ -349,7 +360,7 @@ class Receiver:
         self.RECEIVER_CH3 = CH3
         self.RECEIVER_CH4 = CH4
         self.RECEIVER_CH5 = CH5
-        ARM = false
+        ARM = False
 
     # GLOBAL VARIABLES FOR PWM MEASUREMENT
     rising_1 = 0
@@ -482,7 +493,7 @@ class Receiver:
 
 def main():
     fc = FlightController(np.array([0, 0, 0]), np.array([0, 0, 0]), np.array([0, 0, 0]))
-    # fc.run()
+    fc.run()
 
 
 if __name__ == "__main__":
