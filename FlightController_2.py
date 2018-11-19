@@ -28,7 +28,6 @@ class FlightController(object):
     def armed(self, armed):
         self._armed = armed
 
-
     # getter for proportional gain
     @property
     def Kp(self):
@@ -88,18 +87,18 @@ class FlightController(object):
         pi = pigpio.pi()
 
         # set receiver input pins
-        pi.set_mode(receiver.RECIEVER_CH1, pigpio.INPUT)
-        pi.set_mode(receiver.RECIEVER_CH2, pigpio.INPUT)
-        pi.set_mode(receiver.RECIEVER_CH3, pigpio.INPUT)
-        pi.set_mode(receiver.RECIEVER_CH4, pigpio.INPUT)
-        pi.set_mode(receiver.RECIEVER_CH5, pigpio.INPUT)
+        pi.set_mode(receiver.RECEIVER_CH1, pigpio.INPUT)
+        pi.set_mode(receiver.RECEIVER_CH1, pigpio.INPUT)
+        pi.set_mode(receiver.RECEIVER_CH1, pigpio.INPUT)
+        pi.set_mode(receiver.RECEIVER_CH1, pigpio.INPUT)
+        pi.set_mode(receiver.RECEIVER_CH5, pigpio.INPUT)
 
         # initialize callbacks
-        cb1 = pi.callback(receiver.RECIEVER_CH1, pigpio.EITHER_EDGE, Receiver.cbf1)
-        cb2 = pi.callback(receiver.RECIEVER_CH2, pigpio.EITHER_EDGE, Receiver.cbf2)
-        cb3 = pi.callback(receiver.RECIEVER_CH3, pigpio.EITHER_EDGE, Receiver.cbf3)
-        cb4 = pi.callback(receiver.RECIEVER_CH4, pigpio.EITHER_EDGE, Receiver.cbf4)
-        cb5 = pi.callback(receiver.RECIEVER_CH5, pigpio.EITHER_EDGE, Receiver.cbf5)
+        cb1 = pi.callback(receiver.RECEIVER_CH1, pigpio.EITHER_EDGE, Receiver.cbf1)
+        cb2 = pi.callback(receiver.RECEIVER_CH2, pigpio.EITHER_EDGE, Receiver.cbf2)
+        cb3 = pi.callback(receiver.RECEIVER_CH3, pigpio.EITHER_EDGE, Receiver.cbf3)
+        cb4 = pi.callback(receiver.RECEIVER_CH4, pigpio.EITHER_EDGE, Receiver.cbf4)
+        cb5 = pi.callback(receiver.RECEIVER_CH5, pigpio.EITHER_EDGE, Receiver.cbf5)
 
         # set motor output pins
         pi.set_mode(motor.MOTOR1, pigpio.OUTPUT)
@@ -152,9 +151,9 @@ class FlightController(object):
                 control_angles = receiver.map_control_input()
 
                 # Get accelerometer and gyroscope data and compute angles
-                accel_data = imu.get_acceleration_data(pi, MPU6050_handle) - acc_offsets
-                gyro_data = imu.get_gyroscope_data(pi, MPU6050_handle) - gyro_offsets
-                imu.euler_state = fc.calculate_angles(pi, accel_data, gyro_data, dt, imu.euler_state)
+                accel_data = imu.get_acceleration_data(pi, imu.MPU6050_handle) - imu.get_acc_offsets
+                gyro_data = imu.get_gyroscope_data(pi, imu.MPU6050_handle) - imu.get_gyro_offsets
+                imu.euler_state = self.calculate_angles(pi, accel_data, gyro_data, dt, imu.euler_state)
 
                 # Compute errors in pitch and roll and yaw rate
                 err = np.array([0 - imu.euler_state[0],
@@ -166,17 +165,17 @@ class FlightController(object):
 
                 # PID law
                 if is_first_loop == 0:
-                    u = np.multiply(Kp, err) + np.multiply(Ki, dt * err_sum)
+                    u = np.multiply(self.Kp, err) + np.multiply(self.Ki, dt * err_sum)
                     is_first_loop = 1
                 else:
-                    u = np.multiply(Kp, err) + np.multiply(Ki, dt * err_sum) + np.multiply(Kd, (err - prev_err) / dt)
+                    u = np.multiply(self.Kp, err) + np.multiply(self.Ki, dt * err_sum) + np.multiply(self.Kd, (err - prev_err) / dt)
                 prev_err = err
 
                 # Map controls into vector
                 ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
 
                 # Map control angles into output signal and set motors
-                wm = map_motor_output(ctrl)
+                wm = motor.map_motor_output(ctrl)
                 print(wm)
                 motor.set_motor_pulse(pi, motor.MOTOR1, wm[0])
                 motor.set_motor_pulse(pi, motor.MOTOR2, wm[1])
@@ -189,25 +188,6 @@ class IMU(object):
     def __init__(self, MPU6050_ADDR):
         self.MPU6050_ADDR = MPU6050_ADDR
         euler_state = np.array([0, 0])
-
-    def setupMPU6050(pi):
-        # opens connection at I2C bus 1
-        mpu6050_handle = pi.i2c_open(1, MPU6050_ADDR, 0)
-
-        # Wakes up MPU6050 by writing 0 to PWR_MGMT_1 register
-        pi.i2c_write_byte_data(mpu6050_handle, 0x6B, 0x02)
-
-        pi.i2c_write_byte_data(mpu6050_handle, 0x38, 1)
-
-        # Set G Scale
-        # Acc_Config = pi.i2c_read_byte_data(mpu6050_handle,0x1C)
-        # Acc_Config_4G = (Acc_Config | 1<<3) & (~1<<4)
-
-        # Calculate Offsets
-        acc_offsets = get_acc_offsets(pi, mpu6050_handle)
-        gyro_offsets = get_gyro_offsets(pi, mpu6050_handle)
-
-        return mpu6050_handle, acc_offsets, gyro_offsets
 
     def get_acc_offsets(pi, MPU6050_handle):
         sum_acc_x = 0
@@ -313,6 +293,25 @@ class IMU(object):
 
         return np.array([GyX, GyY, GyZ])
 
+    def setupMPU6050(pi):
+        # opens connection at I2C bus 1
+        mpu6050_handle = pi.i2c_open(1, MPU6050_ADDR, 0)
+
+        # Wakes up MPU6050 by writing 0 to PWR_MGMT_1 register
+        pi.i2c_write_byte_data(mpu6050_handle, 0x6B, 0x02)
+
+        pi.i2c_write_byte_data(mpu6050_handle, 0x38, 1)
+
+        # Set G Scale
+        # Acc_Config = pi.i2c_read_byte_data(mpu6050_handle,0x1C)
+        # Acc_Config_4G = (Acc_Config | 1<<3) & (~1<<4)
+
+        # Calculate Offsets
+        acc_offsets = get_acc_offsets(pi, mpu6050_handle)
+        gyro_offsets = get_gyro_offsets(pi, mpu6050_handle)
+
+        return mpu6050_handle, acc_offsets, gyro_offsets
+
 # a class representing the motors
 class Motor(object):
     def __init__(self, MOTOR1, MOTOR2, MOTOR3, MOTOR4):
@@ -346,13 +345,13 @@ class Motor(object):
 
     def arm(pi):
         print("Arming...")
-        set_motor_pulse(pi, self.MOTOR1, 1)
-        set_motor_pulse(pi, self.MOTOR2, 1)
-        set_motor_pulse(pi, self.MOTOR3, 1)
-        set_motor_pulse(pi, self.MOTOR4, 1)
+        Motor.set_motor_pulse(pi, self.MOTOR1, 1)
+        Motor.set_motor_pulse(pi, self.MOTOR2, 1)
+        Motor.set_motor_pulse(pi, self.MOTOR3, 1)
+        Motor.set_motor_pulse(pi, self.MOTOR4, 1)
 
 # a class representing the receiver
-class Receiver:
+class Receiver(object):
     def __init__(self, CH1, CH2, CH3, CH4, CH5):
         self.RECEIVER_CH1 = CH1
         self.RECEIVER_CH2 = CH2
@@ -360,6 +359,7 @@ class Receiver:
         self.RECEIVER_CH4 = CH4
         self.RECEIVER_CH5 = CH5
         ARM = False
+
 
     # GLOBAL VARIABLES FOR PWM MEASUREMENT
     rising_1 = 0
@@ -482,7 +482,7 @@ class Receiver:
 
         return np.array([roll, pitch, yaw, throttle, arm])
 
-    def can_arm():
+    def can_arm(self):
         canarm = True
         if pulse_width_ch3 > 1.0:
             canarm = False
