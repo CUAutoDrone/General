@@ -58,31 +58,14 @@ class FlightController(object):
     def Kd(self, Kd):
         self._Kd = Kd
 
-    def calculate_angles(pi, accel_data, gyro_data, dt, euler_state):
-        # alpha
-        alpha = 0.98
-
-        # convert to radians
-        accel_data_rad = accel_data * np.pi / 180
-
-        # Estimate angle from accelerometer
-        roll_acc = np.arctan2(accel_data_rad[1], -1 * accel_data_rad[2])
-        pitch_acc = np.arctan2(-accel_data_rad[0],
-                               np.sqrt(np.power(accel_data_rad[1], 2) + np.power(accel_data_rad[2], 2)))
-
-        # Complementary Filter
-        acc_angles = np.array([roll_acc * 180 / np.pi, pitch_acc * 180 / np.pi])
-        gyro_pr = np.array([gyro_data[0], gyro_data[1]])
-
-        new_angles = alpha * (euler_state + dt * gyro_pr) + (1 - alpha) * acc_angles
-
-        return new_angles
-
     # instantiate IMU, motors,receiver
     # run flight loop
     def run(self):
-        imu = IMU(0x68)
+        # IMU created with MPU_6050, alpha initialized
+        imu = IMU(0x68, 0.98)
+        # motors created with motors initialized
         motor = Motor(10, 9, 25, 8)
+        # receiver created with receiver channels initialized
         receiver = Receiver(17, 27, 22, 18, 23)
         pi = pigpio.pi()
 
@@ -137,7 +120,6 @@ class FlightController(object):
             sys_time = pi.get_current_tick()
 
             # flight loop
-
             while (receiver.ARM == 1):
                 # Get Delta Time
                 sys_time_new = pi.get_current_tick()
@@ -151,9 +133,9 @@ class FlightController(object):
                 control_angles = receiver.map_control_input()
 
                 # Get accelerometer and gyroscope data and compute angles
-                accel_data = imu.get_acceleration_data(pi, imu.MPU6050_handle) - imu.get_acc_offsets
-                gyro_data = imu.get_gyroscope_data(pi, imu.MPU6050_handle) - imu.get_gyro_offsets
-                imu.euler_state = self.calculate_angles(pi, accel_data, gyro_data, dt, imu.euler_state)
+                accel_data = IMU.get_acceleration_data(pi, imu.MPU6050_handle) - IMU.get_acc_offsets
+                gyro_data = IMU.get_gyroscope_data(pi, imu.MPU6050_handle) - IMU.get_gyro_offsets
+                imu.euler_state = IMU.calculate_angles(pi, accel_data, gyro_data, dt, imu.euler_state)
 
                 # Compute errors in pitch and roll and yaw rate
                 err = np.array([0 - imu.euler_state[0],
@@ -175,19 +157,50 @@ class FlightController(object):
                 ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
 
                 # Map control angles into output signal and set motors
-                wm = motor.map_motor_output(ctrl)
+                wm = Motor.map_motor_output(ctrl)
                 print(wm)
-                motor.set_motor_pulse(pi, motor.MOTOR1, wm[0])
-                motor.set_motor_pulse(pi, motor.MOTOR2, wm[1])
-                motor.set_motor_pulse(pi, motor.MOTOR3, wm[2])
-                motor.set_motor_pulse(pi, motor.MOTOR4, wm[3])
+                Motor.set_motor_pulse(pi, motor.MOTOR1, wm[0])
+                Motor.set_motor_pulse(pi, motor.MOTOR2, wm[1])
+                Motor.set_motor_pulse(pi, motor.MOTOR3, wm[2])
+                Motor.set_motor_pulse(pi, motor.MOTOR4, wm[3])
 
 
 # a class representing the IMU
 class IMU(object):
-    def __init__(self, MPU6050_ADDR):
+
+    def __init__(self, MPU6050_ADDR, alpha):
         self.MPU6050_ADDR = MPU6050_ADDR
-        euler_state = np.array([0, 0])
+        self.alpha = alpha
+        self.euler_state = np.array([0, 0])
+        self.accel_data = np.array([0,0])
+        self.gyro_data = np.array([0, 0])
+
+    # getter for euler state
+    def get_euler_state(self):
+        return self.euler_state
+
+    # setter for euler state
+    def set_euler_state(self, data):
+        self.euler_state = data
+        return self.euler_state
+
+    # getter for acceleration data
+    def get_accel_data(self):
+        return self.accel_data
+
+    # setter for acceleration data
+    def set_accel_data(self, data):
+        self.accel_data = data
+        return self.accel_data
+
+    # getter for gyroscopic data
+    def get_gyro_data(self):
+        return self.gyro_data
+
+    # setter for gyroscopic data
+    def set_gyro_data(self, data):
+        self.gyro_data = data
+        return self.gyro_data
 
     def get_acc_offsets(pi, MPU6050_handle):
         sum_acc_x = 0
@@ -223,7 +236,6 @@ class IMU(object):
         return np.array([AcX_mean, AcY_mean, AcZ_mean + 1])
 
     def get_acceleration_data(pi, MPU6050_handle):
-
         AcX = (pi.i2c_read_byte_data(MPU6050_handle, 0x3B) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x3C)
         AcY = (pi.i2c_read_byte_data(MPU6050_handle, 0x3D) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x3E)
         AcZ = (pi.i2c_read_byte_data(MPU6050_handle, 0x3F) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x40)
@@ -267,15 +279,13 @@ class IMU(object):
         GyY_mean = sum_gy_y / iter_num
         GyZ_mean = sum_gy_z / iter_num
 
-        # Convert to G's
-        GyX_mean = GyX_mean / 65535 * 500
-        GyY_mean = GyY_mean / 65535 * 500
-        GyZ_mean = GyZ_mean / 65535 * 500
+        GyX_mean = GyX_mean / 65.5
+        GyY_mean = GyY_mean / 65.5
+        GyZ_mean = GyZ_mean / 65.5
 
         return np.array([GyX_mean, GyY_mean, GyZ_mean])
 
     def get_gyroscope_data(pi, MPU6050_handle):
-
         GyX = (pi.i2c_read_byte_data(MPU6050_handle, 0x43) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x44)
         GyY = (pi.i2c_read_byte_data(MPU6050_handle, 0x45) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x46)
         GyZ = (pi.i2c_read_byte_data(MPU6050_handle, 0x47) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x48)
@@ -286,16 +296,23 @@ class IMU(object):
         if GyZ > 32768:
             GyZ = GyZ - 65536
 
-        # Convert to deg/sec
-        GyX = GyX * 500 / 65536
-        GyY = GyY * 500 / 65536
-        GyZ = GyZ * 500 / 65536
+        GyX = GyX / 65.5
+        GyY = GyY / 65.5
+        GyZ = GyZ / 65.5
 
         return np.array([GyX, GyY, GyZ])
 
-    def setupMPU6050(pi):
+    def setupMPU6050(self, pi):
         # opens connection at I2C bus 1
-        mpu6050_handle = pi.i2c_open(1, MPU6050_ADDR, 0)
+        mpu6050_handle = pi.i2c_open(1, self.MPU6050_ADDR, 0)
+
+        # Configure things as done in:
+        # https://github.com/tockn/MPU6050_tockn/blob/master/src/MPU6050_tockn.cpp
+
+        pi.i2c_write_byte_data(mpu6050_handle, 0x19, 0x00)
+        pi.i2c_write_byte_data(mpu6050_handle, 0x1a, 0x00)
+        pi.i2c_write_byte_data(mpu6050_handle, 0x1b, 0x08)
+        pi.i2c_write_byte_data(mpu6050_handle, 0x1c, 0x00)
 
         # Wakes up MPU6050 by writing 0 to PWR_MGMT_1 register
         pi.i2c_write_byte_data(mpu6050_handle, 0x6B, 0x02)
@@ -307,10 +324,27 @@ class IMU(object):
         # Acc_Config_4G = (Acc_Config | 1<<3) & (~1<<4)
 
         # Calculate Offsets
-        acc_offsets = get_acc_offsets(pi, mpu6050_handle)
-        gyro_offsets = get_gyro_offsets(pi, mpu6050_handle)
+        acc_offsets = self.get_acc_offsets(pi, mpu6050_handle)
+        gyro_offsets = self.get_gyro_offsets(pi, mpu6050_handle)
 
         return mpu6050_handle, acc_offsets, gyro_offsets
+
+    def calculate_angles(pi, accel_data, gyro_data, sys_time, euler_state):
+        # Estimate angle from accelerometer
+        pitch_acc = np.arctan2(accel_data[0], np.sqrt(np.power(accel_data[1], 2) + np.power(accel_data[2], 2))) * -1
+        roll_acc = np.arctan2(accel_data[1], np.sqrt(np.power(accel_data[0], 2) + np.power(accel_data[2], 2)))
+
+        # Complementary Filter
+        acc_angles = np.array([roll_acc * 180 / np.pi, pitch_acc * 180 / np.pi])
+        gyro_pr = np.array([gyro_data[0], gyro_data[1]])
+
+        dt = (pi.get_current_tick() - sys_time) / 1e6
+        if dt < 0:
+            dt = 0
+
+        new_angles = self.alpha * (euler_state + dt * gyro_pr) + (1 - self.alpha) * acc_angles
+
+        return new_angles
 
 # a class representing the motors
 class Motor(object):
@@ -330,7 +364,7 @@ class Motor(object):
         m2 = throttle - roll - pitch + yawrate
         m3 = throttle + roll - pitch - yawrate
         m4 = throttle + roll + pitch + yawrate
-        return minMax(np.array([m1, m2, m3, m4]), 1, 2)
+        return Motor.minMax(np.array([m1, m2, m3, m4]), 1, 2)
 
     def minMax(vec, min, max):
         for i in range(0, np.size(vec)):
@@ -343,7 +377,7 @@ class Motor(object):
     def set_motor_pulse(pi, gpio, timems):
         pi.set_PWM_dutycycle(gpio, timems / 2.5 * 255)
 
-    def arm(pi):
+    def arm(self, pi):
         print("Arming...")
         Motor.set_motor_pulse(pi, self.MOTOR1, 1)
         Motor.set_motor_pulse(pi, self.MOTOR2, 1)
@@ -358,7 +392,7 @@ class Receiver(object):
         self.RECEIVER_CH3 = CH3
         self.RECEIVER_CH4 = CH4
         self.RECEIVER_CH5 = CH5
-        ARM = False
+        self.ARM = False
 
 
     # GLOBAL VARIABLES FOR PWM MEASUREMENT
