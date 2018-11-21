@@ -1,4 +1,6 @@
 import numpy as np
+import math
+
 
 # defines Quaternion operations
 class Quaternion(object):
@@ -49,16 +51,36 @@ class Quaternion(object):
     def divided_by(self, q):
         q.inverse()
         self.times(q)
-    
-    # convert the quaternion into a string
+
     def to_string(self):
         print(self.a, self.b, self.c, self.d)
 
-    # convert the quaternion into an array
     def to_array(self):
         arr = np.array([self.a, self.b, self.c, self.d])
         return arr
 
-#convert from euler state to quaternion
 
-#convert from quaternion to euler state
+# convert from euler state to quaternion
+# NOTE: only tested for basic cases
+def euler_to_quaternion(angle_x, angle_y, angle_z):
+    heading = (angle_y / 180) * math.pi
+    attitude = (angle_z / 180) * math.pi
+    bank = (angle_x / 180) * math.pi
+
+    c1 = math.cos(heading / 2)
+    c2 = math.cos(attitude / 2)
+    c3 = math.cos(bank / 2)
+
+    s1 = math.sin(heading / 2)
+    s2 = math.sin(attitude / 2)
+    s3 = math.sin(bank / 2)
+
+    a = (c1 * c2 * c3) - (s1 * s2 * s3)
+    b = (s1 * s2 * c3) + (c1 * c2 * s3)
+    c = (s1 * c2 * c3) + (c1 * s2 * s3)
+    d = (c1 * s2 * c3) - (s1 * c2 * s3)
+
+    return Quaternion(a, b, c, d)
+
+
+# TODO: convert from quaternion to euler state
