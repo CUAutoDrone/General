@@ -38,7 +38,7 @@ class IMU(object):
         self.gyro_data = data
         return self.gyro_data
 
-    def get_acc_offsets(pi, MPU6050_handle):
+    def get_acc_offsets(self, pi, MPU6050_handle):
         sum_acc_x = 0
         sum_acc_y = 0
         sum_acc_z = 0
@@ -71,7 +71,7 @@ class IMU(object):
 
         return np.array([AcX_mean, AcY_mean, AcZ_mean + 1])
 
-    def get_acceleration_data(pi, MPU6050_handle):
+    def get_acceleration_data(self, pi, MPU6050_handle):
         AcX = (pi.i2c_read_byte_data(MPU6050_handle, 0x3B) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x3C)
         AcY = (pi.i2c_read_byte_data(MPU6050_handle, 0x3D) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x3E)
         AcZ = (pi.i2c_read_byte_data(MPU6050_handle, 0x3F) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x40)
@@ -89,7 +89,7 @@ class IMU(object):
 
         return np.array([AcX, AcY, AcZ])
 
-    def get_gyro_offsets(pi, MPU6050_handle):
+    def get_gyro_offsets(self, pi, MPU6050_handle):
         sum_gy_x = 0
         sum_gy_y = 0
         sum_gy_z = 0
@@ -121,7 +121,7 @@ class IMU(object):
 
         return np.array([GyX_mean, GyY_mean, GyZ_mean])
 
-    def get_gyroscope_data(pi, MPU6050_handle):
+    def get_gyroscope_data(self, pi, MPU6050_handle):
         GyX = (pi.i2c_read_byte_data(MPU6050_handle, 0x43) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x44)
         GyY = (pi.i2c_read_byte_data(MPU6050_handle, 0x45) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x46)
         GyZ = (pi.i2c_read_byte_data(MPU6050_handle, 0x47) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x48)
@@ -165,7 +165,7 @@ class IMU(object):
 
         return mpu6050_handle, acc_offsets, gyro_offsets
 
-    def calculate_angles(pi, accel_data, gyro_data, sys_time, euler_state):
+    def calculate_angles(self, pi, accel_data, gyro_data, sys_time, euler_state):
         # Estimate angle from accelerometer
         pitch_acc = np.arctan2(accel_data[0], np.sqrt(np.power(accel_data[1], 2) + np.power(accel_data[2], 2))) * -1
         roll_acc = np.arctan2(accel_data[1], np.sqrt(np.power(accel_data[0], 2) + np.power(accel_data[2], 2)))
@@ -242,7 +242,7 @@ class Receiver(object):
     rising_5 = 0
     pulse_width_ch5 = 0
 
-    def cbf1(gpio, level, tick):
+    def cbf1(self, gpio, level, tick):
         # connects global and local variables
         global rising_1
         global pulse_width_ch1
@@ -259,7 +259,7 @@ class Receiver(object):
                 # divide by 1000 to get milliseconds
                 pulse_width_ch1 = width / 1000
 
-    def cbf2(gpio, level, tick):
+    def cbf2(self, gpio, level, tick):
         # connects global and local variables
         global rising_2
         global pulse_width_ch2
@@ -276,7 +276,7 @@ class Receiver(object):
                 # divide by 1000 to get milliseconds
                 pulse_width_ch2 = width / 1000
 
-    def cbf3(gpio, level, tick):
+    def cbf3(self, gpio, level, tick):
         # connects global and local variables
         global rising_3
         global pulse_width_ch3
@@ -293,7 +293,7 @@ class Receiver(object):
                 # divide by 1000 to get milliseconds
                 pulse_width_ch3 = width / 1000
 
-    def cbf4(gpio, level, tick):
+    def cbf4(self, gpio, level, tick):
         # connects global and local variables
         global rising_4
         global pulse_width_ch4
@@ -310,7 +310,7 @@ class Receiver(object):
                 # divide by 1000 to get milliseconds
                 pulse_width_ch4 = width / 1000
 
-    def cbf5(gpio, level, tick):
+    def cbf5(self, gpio, level, tick):
         # connects global and local variables
         global rising_5
         global pulse_width_ch5
@@ -332,11 +332,11 @@ class Receiver(object):
                 else:
                     ARM = 0
 
-    def map(num, a, b, c, d):
+    def map(self, num, a, b, c, d):
         y = (num - a) * (d - c) / (b - a) + c
         return y
 
-    def map_control_input():
+    def map_control_input(self):
         global pulse_width_ch1
         global pulse_width_ch2
         global pulse_width_ch3
@@ -480,7 +480,7 @@ class FlightController(object):
         self.imu.MPU6050_handle, self.imu.acc_offsets, self.imu.gyro_offsets = self.imu.setupMPU6050(pi)
 
         # machine loop
-        while (True):
+        while True:
             self.motor.set_motor_pulse(pi, self.motor.MOTOR1, 1)
             self.motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
             self.motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
