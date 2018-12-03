@@ -4,7 +4,7 @@ import numpy as np
 
 #I googled again, I can put IMU, motor, and receiver into separate modules and package it. Let me know if you'd rather do that.
 #This is suggested if Python modules get too long. Also, need to test still. Please also look at GUI_Drone.py . Needs Python 3 environment
-#Testing is limited, but it will update PID.
+#Testing is limited, but it will update PID. Please also see line comments at line 493.
 
 # a class representing the IMU
 class IMU(object):
