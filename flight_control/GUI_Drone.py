@@ -16,7 +16,8 @@ fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
                       np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
 
 # TODO:
-#
+# create data monitor for certain aspects,
+# buttons to have drone perform certain maneuvers
 #
 
 
@@ -27,22 +28,26 @@ class DroneGUI(QDialog):
         # palette background setting, style
         self.create_palette()
 
-        # create the arm, kill, unarm buttons
+        # adds the arm, kill, unarm buttons
         self.create_arm_kill_buttons()
 
-        # create the PID insert text boxes
+        # adds the PID insert text boxes
         self.create_PID_insert()
 
-        # creates the shortcut labels
+        # adds the shortcut labels
         self.create_shortcut_labels()
 
-        # creates the data monitors
+        # adds the log
         self.create_log()
+
+        # stream for the command line output to fill the log
+        sys.stdout = Stream(newText=self.onUpdateText)
+
+        # adds the data monitor
+        self.create_data_monitor()
 
         # installs the event filter for 'space bar' and 'a' keys
         qApp.installEventFilter(self)
-
-        sys.stdout = Stream(newText=self.onUpdateText)
 
 
 
@@ -67,7 +72,7 @@ class DroneGUI(QDialog):
                     return True
             if event.key() == Qt.Key_A:
                 if not(self.arm_button.isChecked()):
-                    print("ARMING DRONE...")
+                    print("ARMING")
                     self.arm_button.setStyleSheet("background-color: Green")
                     self.undo_killswitch_button.setEnabled(False)
                     self.killswitch_button.setEnabled(True)
@@ -157,7 +162,7 @@ class DroneGUI(QDialog):
 
     # allows the drone to be armed again
     def undo_killswitch(self):
-        print("arm button unlocked")
+        print("ARM button unlocked")
         self.arm_button.setEnabled(True)
         self.undo_killswitch_button.setEnabled(False)
         self.killswitch_button.setStyleSheet("background-color: red")
@@ -167,7 +172,7 @@ class DroneGUI(QDialog):
 
     # arms the drone
     def arm_drone(self):
-        print("ARMING DRONE...")
+        print("ARMING")
         self.undo_killswitch_button.setEnabled(False)
         self.killswitch_button.setEnabled(True)
         self.undo_killswitch_button.setStyleSheet("background-color:rgb(53,53,53);")
@@ -307,27 +312,62 @@ class DroneGUI(QDialog):
         self.key_spacebar_shortcut.setText("Press 'space bar' to killswitch")
 
     def onUpdateText(self, text):
-        cursor = self.data_1.textCursor()
+        cursor = self.log.textCursor()
         cursor.movePosition(QTextCursor.End)
         cursor.insertText(text)
-        self.data_1.setTextCursor(cursor)
-        self.data_1.ensureCursorVisible()
+        self.log.setTextCursor(cursor)
+        self.log.ensureCursorVisible()
 
     def __del__(self):
         sys.stdout = sys.__stdout__
 
     # creates a log for the command line output
     def create_log(self):
-        self.data_1 = QTextEdit(self)
-        self.data_1.move(0, 215)
-        self.data_1.moveCursor(QTextCursor.Start)
-        self.data_1.ensureCursorVisible()
-        self.data_1.setLineWrapMode(QTextEdit.FixedPixelWidth)
-        self.data_1.setReadOnly(True)
-        self.data_1.setLineWrapColumnOrWidth(250)
-        sys.stdout = Stream(newText=self.onUpdateText)
+        self.log = QTextEdit(self)
+        self.log.move(0, 215)
+        self.log.moveCursor(QTextCursor.Start)
+        self.log.ensureCursorVisible()
+        self.log.setLineWrapMode(QTextEdit.FixedPixelWidth)
+        self.log.setReadOnly(True)
+        self.log.setLineWrapColumnOrWidth(250)
+        try:
+            sys.stdout = Stream(newText=self.onUpdateText)
+        except AttributeError as error:
+            print(error)
 
+    # creates data monitor
+    def create_data_monitor(self):
+        # make QTimer
+        self.qTimer = QTimer(self)
 
+        # label to title the data monitor
+        self.sensor_label_title = QLabel("insert_sensor_title_here", self)
+        self.sensor_label_title.move(550,288)
+        self.sensor_label_title.setStyleSheet("background-color:rgb(53,53,53);")
+
+        # label to hold the data
+        self.sensor_label = QLabel("sensor_value", self)
+        self.sensor_label.move(550,300)
+
+        # set interval to update every 500 ms
+        self.qTimer.setInterval(500)
+
+        # connect timeout signal to signal handler
+        self.qTimer.timeout.connect(self.get_sensor_value)
+
+        self.qTimer.start()
+
+        # dummy variable to demonstrate the monitor
+        self.i = 0
+
+    # gets the sensor's value
+    def get_sensor_value(self):
+        self.i += 1.32
+
+        # get's the sensor value
+        self.sensor_label.setText(str(self.i))
+
+# a class to read the command line output stream
 class Stream(QObject):
     newText = pyqtSignal(str)
 
