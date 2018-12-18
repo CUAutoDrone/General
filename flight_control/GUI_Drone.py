@@ -36,8 +36,13 @@ class DroneGUI(QDialog):
         # creates the shortcut labels
         self.create_shortcut_labels()
 
+        # creates the data monitors
+        self.create_log()
+
         # installs the event filter for 'space bar' and 'a' keys
         qApp.installEventFilter(self)
+
+        sys.stdout = Stream(newText=self.onUpdateText)
 
 
 
@@ -47,7 +52,7 @@ class DroneGUI(QDialog):
         if event.type() == QEvent.KeyPress:
             if event.key() == Qt.Key_Space:
                 if self.arm_button.isChecked():
-                    print("kill switch activated")
+                    print("KILLSWITCH ACTIVATED")
                     self.arm_button.toggle()
                     self.arm_button.setEnabled(False)
                     self.undo_killswitch_button.setEnabled(True)
@@ -62,7 +67,7 @@ class DroneGUI(QDialog):
                     return True
             if event.key() == Qt.Key_A:
                 if not(self.arm_button.isChecked()):
-                    print("arming drone")
+                    print("ARMING DRONE...")
                     self.arm_button.setStyleSheet("background-color: Green")
                     self.undo_killswitch_button.setEnabled(False)
                     self.killswitch_button.setEnabled(True)
@@ -139,7 +144,7 @@ class DroneGUI(QDialog):
     # killswitch for the drone
     def kill_motor(self):
         if self.arm_button.isChecked():
-            print("kill switch activated")
+            print("KILLSWITCH ACTIVATED")
             self.arm_button.toggle()
             self.arm_button.setEnabled(False)
             self.undo_killswitch_button.setEnabled(True)
@@ -162,7 +167,7 @@ class DroneGUI(QDialog):
 
     # arms the drone
     def arm_drone(self):
-        print("arming drone")
+        print("ARMING DRONE...")
         self.undo_killswitch_button.setEnabled(False)
         self.killswitch_button.setEnabled(True)
         self.undo_killswitch_button.setStyleSheet("background-color:rgb(53,53,53);")
@@ -180,11 +185,14 @@ class DroneGUI(QDialog):
         else:
             print()
             print("DTG: ", datetime.datetime.now())
-            print("Updated Proportional Gain: ", "Roll: ", self.Kp0_textbox.text(), " Pitch: ", self.Kp1_textbox.text(),
+            print(" - Updated Proportional Gain:      ", "                  Roll: ", self.Kp0_textbox.text(),
+                  " Pitch: ", self.Kp1_textbox.text(),
                   " Yaw: ", self.Kp2_textbox.text())
-            print("Updated Integral Gain: ", "    Roll: ", self.Ki0_textbox.text(), " Pitch: ", self.Ki1_textbox.text(),
+            print(" - Updated Integral Gain:          ", "                      Roll: ", self.Ki0_textbox.text(),
+                  " Pitch: ", self.Ki1_textbox.text(),
                   " Yaw: ", self.Ki2_textbox.text())
-            print("Updated Proportional Gain: ", "Roll: ", self.Kd0_textbox.text(), " Pitch: ", self.Kd1_textbox.text(),
+            print(" - Updated Proportional Gain:      ", "                  Roll: ", self.Kd0_textbox.text(),
+                  " Pitch: ", self.Kd1_textbox.text(),
                   " Yaw: ", self.Kd2_textbox.text())
 
     # creates the PID text boxes, button for updating PID values
@@ -298,6 +306,36 @@ class DroneGUI(QDialog):
         self.key_spacebar_shortcut.move(540, 402)
         self.key_spacebar_shortcut.setText("Press 'space bar' to killswitch")
 
+    def onUpdateText(self, text):
+        cursor = self.data_1.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        cursor.insertText(text)
+        self.data_1.setTextCursor(cursor)
+        self.data_1.ensureCursorVisible()
+
+    def __del__(self):
+        sys.stdout = sys.__stdout__
+
+    # creates a log for the command line output
+    def create_log(self):
+        self.data_1 = QTextEdit(self)
+        self.data_1.move(0, 215)
+        self.data_1.moveCursor(QTextCursor.Start)
+        self.data_1.ensureCursorVisible()
+        self.data_1.setLineWrapMode(QTextEdit.FixedPixelWidth)
+        self.data_1.setReadOnly(True)
+        self.data_1.setLineWrapColumnOrWidth(250)
+        sys.stdout = Stream(newText=self.onUpdateText)
+
+
+class Stream(QObject):
+    newText = pyqtSignal(str)
+
+    def write(self, text):
+        self.newText.emit(str(text))
+
+
+
 if __name__ == '__main__':
     import sys
 
@@ -306,6 +344,8 @@ if __name__ == '__main__':
     gallery.setGeometry(0, 0, 700, 415)
     gallery.show()
     sys.exit(app.exec_())
+
+
 
 
 
