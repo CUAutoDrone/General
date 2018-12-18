@@ -33,6 +33,51 @@ class DroneGUI(QDialog):
         # create the PID insert text boxes
         self.create_PID_insert()
 
+        # creates the shortcut labels
+        self.create_shortcut_labels()
+
+        # installs the event filter for 'space bar' and 'a' keys
+        qApp.installEventFilter(self)
+
+
+
+    # filters space bar to allow it to be a killswitch only
+    # filters 'a' to allow it to arm the drone only
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.KeyPress:
+            if event.key() == Qt.Key_Space:
+                if self.arm_button.isChecked():
+                    print("kill switch activated")
+                    self.arm_button.toggle()
+                    self.arm_button.setEnabled(False)
+                    self.undo_killswitch_button.setEnabled(True)
+                    self.undo_killswitch_button.setStyleSheet("background-color: yellow; color:black")
+                    self.arm_button.setStyleSheet("background-color: Gray")
+                    self.killswitch_button.setEnabled(False)
+                    self.killswitch_button.setStyleSheet("background-color: Darkred; color:black")
+                    #fc.receiver.ARM = 0
+                    #fc.receiver.can_arm()
+                    return True
+                else:
+                    return True
+            if event.key() == Qt.Key_A:
+                if not(self.arm_button.isChecked()):
+                    print("arming drone")
+                    self.arm_button.setStyleSheet("background-color: Green")
+                    self.undo_killswitch_button.setEnabled(False)
+                    self.killswitch_button.setEnabled(True)
+                    self.killswitch_button.setStyleSheet("background-color: red")
+                    self.undo_killswitch_button.setStyleSheet("background-color:rgb(53,53,53);")
+                    self.arm_button.setEnabled(False)
+                    self.arm_button.setChecked(True)
+                    # fc.run()
+                    return True
+                else:
+                    return True
+
+
+        return super(DroneGUI, self).eventFilter(obj, event)
+
 
     def create_palette(self):
         self.setWindowTitle("ARC: Flight Control")
@@ -72,6 +117,8 @@ class DroneGUI(QDialog):
         # button to kill the drone
         self.killswitch_button = QPushButton('KILLSWITCH', self)
         self.killswitch_button.move(590, 0)
+        self.killswitch_button.setDefault(False)
+        self.killswitch_button.setAutoDefault(False)
         self.killswitch_button.setFont(QFont("Helvetica", 17.5))
         self.killswitch_button.resize(110, 60)
         self.killswitch_button.clicked.connect(self.kill_motor)
@@ -80,6 +127,8 @@ class DroneGUI(QDialog):
 
         # button to undo kill switch
         self.undo_killswitch_button = QPushButton('Unlock ARM', self)
+        self.undo_killswitch_button.setDefault(False)
+        self.undo_killswitch_button.setAutoDefault(False)
         self.undo_killswitch_button.move(590, 62)
         self.undo_killswitch_button.setFont(QFont("Helvetica", 12))
         self.undo_killswitch_button.resize(75, 30)
@@ -89,13 +138,15 @@ class DroneGUI(QDialog):
 
     # killswitch for the drone
     def kill_motor(self):
-        print("kill switch activated")
         if self.arm_button.isChecked():
+            print("kill switch activated")
             self.arm_button.toggle()
             self.arm_button.setEnabled(False)
             self.undo_killswitch_button.setEnabled(True)
             self.undo_killswitch_button.setStyleSheet("background-color: yellow; color:black")
             self.killswitch_button.setEnabled(False)
+            self.killswitch_button.setStyleSheet("background-color: Darkred; color:black")
+            self.arm_button.setStyleSheet("background-color: Gray")
             #fc.receiver.ARM = 0
             #fc.receiver.can_arm()
 
@@ -104,6 +155,9 @@ class DroneGUI(QDialog):
         print("arm button unlocked")
         self.arm_button.setEnabled(True)
         self.undo_killswitch_button.setEnabled(False)
+        self.killswitch_button.setStyleSheet("background-color: red")
+        self.undo_killswitch_button.setStyleSheet("background-color: Gold")
+        self.arm_button.setStyleSheet("background-color: Green")
         #fc.receiver.ARM = 1
 
     # arms the drone
@@ -139,6 +193,7 @@ class DroneGUI(QDialog):
         # proportional text
         self.onlyDouble = QDoubleValidator()
         self.Kp0_textbox = QLineEdit(self)
+        self.Kp0_textbox.clearFocus()
         self.Kp0_textbox.setValidator(self.onlyDouble)
         self.Kp0_textbox.resize(50, 23)
         self.Kp0_textbox.setText(str(fc.Kp[0]))
@@ -188,7 +243,6 @@ class DroneGUI(QDialog):
         self.Ki_label.setLineWidth(3)
         self.Ki_label.setStyleSheet("background-color:rgb(53,53,53);")
 
-
         # derivative text
         self.Kd0_textbox = QLineEdit(self)
         self.Kd0_textbox.move(0, 54)
@@ -234,6 +288,16 @@ class DroneGUI(QDialog):
         self.RPY.setLineWidth(3)
         self.RPY.setStyleSheet("background-color:rgb(53,53,53);")
 
+    # creates shortcut labels
+    def create_shortcut_labels(self):
+        # label for key shortcuts
+        self.key_a_shortcut = QLabel(self)
+        self.key_a_shortcut.move(612, 390)
+        self.key_a_shortcut.setText("Press 'a' to arm")
+        self.key_spacebar_shortcut = QLabel(self)
+        self.key_spacebar_shortcut.move(540, 402)
+        self.key_spacebar_shortcut.setText("Press 'space bar' to killswitch")
+
 if __name__ == '__main__':
     import sys
 
@@ -242,6 +306,8 @@ if __name__ == '__main__':
     gallery.setGeometry(0, 0, 700, 415)
     gallery.show()
     sys.exit(app.exec_())
+
+
 
 
 
