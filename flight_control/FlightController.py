@@ -177,6 +177,7 @@ class FlightController(object):
                 else:
                     u = np.multiply(self.Kp, err) + np.multiply(self.Ki, dt * err_sum) + np.multiply(self.Kd, (err - prev_err) / dt)
                 # TODO: Fix this, prev_err not defined until 3rd loop, but used in 2nd loop
+                # TODO: if dt is less than 0, dt is equal to 0? Could result in Divide_by_zero error
                 prev_err = err
 
                 # Map controls into vector
