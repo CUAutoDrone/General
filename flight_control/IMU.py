@@ -37,7 +37,8 @@ class IMU(object):
         self.gyro_data = data
         return self.gyro_data
 
-    def get_acc_offsets(self, pi, MPU6050_handle):
+    @staticmethod
+    def get_acc_offsets(pi, MPU6050_handle):
         sum_acc_x = 0
         sum_acc_y = 0
         sum_acc_z = 0
@@ -70,7 +71,8 @@ class IMU(object):
 
         return np.array([AcX_mean, AcY_mean, AcZ_mean + 1])
 
-    def get_acceleration_data(self, pi, MPU6050_handle):
+    @staticmethod
+    def get_acceleration_data(pi, MPU6050_handle):
         AcX = (pi.i2c_read_byte_data(MPU6050_handle, 0x3B) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x3C)
         AcY = (pi.i2c_read_byte_data(MPU6050_handle, 0x3D) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x3E)
         AcZ = (pi.i2c_read_byte_data(MPU6050_handle, 0x3F) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x40)
@@ -88,7 +90,8 @@ class IMU(object):
 
         return np.array([AcX, AcY, AcZ])
 
-    def get_gyro_offsets(self, pi, MPU6050_handle):
+    @staticmethod
+    def get_gyro_offsets(pi, MPU6050_handle):
         sum_gy_x = 0
         sum_gy_y = 0
         sum_gy_z = 0
@@ -120,7 +123,8 @@ class IMU(object):
 
         return np.array([GyX_mean, GyY_mean, GyZ_mean])
 
-    def get_gyroscope_data(self, pi, MPU6050_handle):
+    @staticmethod
+    def get_gyroscope_data(pi, MPU6050_handle):
         GyX = (pi.i2c_read_byte_data(MPU6050_handle, 0x43) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x44)
         GyY = (pi.i2c_read_byte_data(MPU6050_handle, 0x45) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x46)
         GyZ = (pi.i2c_read_byte_data(MPU6050_handle, 0x47) << 8) + pi.i2c_read_byte_data(MPU6050_handle, 0x48)
@@ -179,4 +183,3 @@ class IMU(object):
 
         new_angles = self.alpha * (euler_state + dt * gyro_pr) + (1 - self.alpha) * acc_angles
         return new_angles
-
