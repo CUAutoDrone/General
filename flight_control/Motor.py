@@ -1,6 +1,3 @@
-import numpy as np
-
-
 # a class representing the motors
 class Motor(object):
     def __init__(self, MOTOR1, MOTOR2, MOTOR3, MOTOR4):
@@ -9,7 +6,8 @@ class Motor(object):
         self.MOTOR3 = MOTOR3
         self.MOTOR4 = MOTOR4
 
-    def map_motor_output(self, ctrl):
+    @staticmethod
+    def map_motor_output(ctrl):
         throttle = ctrl[0]
         roll = ctrl[1]
         pitch = ctrl[2]
@@ -21,7 +19,8 @@ class Motor(object):
         m4 = throttle + roll + pitch + yawrate
         return Motor.minMax(np.array([m1, m2, m3, m4]), 1, 2)
 
-    def minMax(self, vec, min, max):
+    @staticmethod
+    def minMax(vec, min, max):
         for i in range(0, np.size(vec)):
             if vec[i] < min:
                 vec[i] = min
@@ -29,7 +28,8 @@ class Motor(object):
                 vec[i] = max
         return vec
 
-    def set_motor_pulse(self, pi, gpio, timems):
+    @staticmethod
+    def set_motor_pulse(pi, gpio, timems):
         pi.set_PWM_dutycycle(gpio, timems / 2.5 * 255)
 
     def arm(self, pi):
