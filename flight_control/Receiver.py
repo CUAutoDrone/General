@@ -23,7 +23,8 @@ class Receiver(object):
     rising_5 = 0
     pulse_width_ch5 = 0
 
-    def cbf1(self, gpio, level, tick):
+    @staticmethod
+    def cbf1(gpio, level, tick):
         # connects global and local variables
         global rising_1
         global pulse_width_ch1
@@ -40,7 +41,8 @@ class Receiver(object):
                 # divide by 1000 to get milliseconds
                 pulse_width_ch1 = width / 1000
 
-    def cbf2(self, gpio, level, tick):
+    @staticmethod
+    def cbf2(gpio, level, tick):
         # connects global and local variables
         global rising_2
         global pulse_width_ch2
@@ -57,7 +59,8 @@ class Receiver(object):
                 # divide by 1000 to get milliseconds
                 pulse_width_ch2 = width / 1000
 
-    def cbf3(self, gpio, level, tick):
+    @staticmethod
+    def cbf3(gpio, level, tick):
         # connects global and local variables
         global rising_3
         global pulse_width_ch3
@@ -74,7 +77,8 @@ class Receiver(object):
                 # divide by 1000 to get milliseconds
                 pulse_width_ch3 = width / 1000
 
-    def cbf4(self, gpio, level, tick):
+    @staticmethod
+    def cbf4(gpio, level, tick):
         # connects global and local variables
         global rising_4
         global pulse_width_ch4
@@ -95,7 +99,6 @@ class Receiver(object):
         # connects global and local variables
         global rising_5
         global pulse_width_ch5
-        global ARM
 
         # If rising edge, store time
         if level == 1:
@@ -109,34 +112,36 @@ class Receiver(object):
                 # divide by 1000 to get milliseconds
                 pulse_width_ch5 = width / 1000
                 if pulse_width_ch5 > 1.4:
-                    ARM = 1
+                    self.receiver.ARM = True
                 else:
-                    ARM = 0
+                    self.receiver.ARM = False
 
-    def map(self, num, a, b, c, d):
+    @staticmethod
+    def map(num, a, b, c, d):
         y = (num - a) * (d - c) / (b - a) + c
         return y
 
-    def map_control_input(self):
+    @staticmethod
+    def map_control_input():
         global pulse_width_ch1
         global pulse_width_ch2
         global pulse_width_ch3
         global pulse_width_ch4
         global pulse_width_ch5
 
-        roll = map(pulse_width_ch2, 1, 2, -30, 30)
-        pitch = map(pulse_width_ch4, 1, 2, -30, 30)
-        yaw = map(pulse_width_ch1, 1, 2, -10, 10)
+        roll = Receiver.map(pulse_width_ch2, 1, 2, -30, 30)
+        pitch = Receiver.map(pulse_width_ch4, 1, 2, -30, 30)
+        yaw = Receiver.map(pulse_width_ch1, 1, 2, -10, 10)
         throttle = pulse_width_ch3
         arm = pulse_width_ch5
 
         return np.array([roll, pitch, yaw, throttle, arm])
 
+    @staticmethod
     def can_arm(self):
         canarm = True
         if pulse_width_ch3 > 1.0:
             canarm = False
-            print("Failed Preflight Check.  Throttle Not Zero")
+            print("Failed Pre-Flight Check.  Throttle Not Zero")
 
         return canarm
-
