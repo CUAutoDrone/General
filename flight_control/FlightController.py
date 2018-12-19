@@ -106,7 +106,7 @@ class FlightController(object):
         cb2 = pi.callback(self.receiver.RECEIVER_CH2, pigpio.EITHER_EDGE, Receiver.cbf2)
         cb3 = pi.callback(self.receiver.RECEIVER_CH3, pigpio.EITHER_EDGE, Receiver.cbf3)
         cb4 = pi.callback(self.receiver.RECEIVER_CH4, pigpio.EITHER_EDGE, Receiver.cbf4)
-        cb5 = pi.callback(self.receiver.RECEIVER_CH5, pigpio.EITHER_EDGE, Receiver.cbf5)
+        cb5 = pi.callback(self.receiver.RECEIVER_CH5, pigpio.EITHER_EDGE, self.receiver.cbf5)
 
         # set motor output pins
         pi.set_mode(self.motor.MOTOR1, pigpio.OUTPUT)
@@ -123,18 +123,17 @@ class FlightController(object):
 
         # machine loop
         while True:
-            self.motor.set_motor_pulse(pi, self.motor.MOTOR1, 1)
-            self.motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
-            self.motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
-            self.motor.set_motor_pulse(pi, self.motor.MOTOR4, 1)
+            Motor.set_motor_pulse(pi, self.motor.MOTOR1, 1)
+            Motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
+            Motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
+            Motor.set_motor_pulse(pi, self.motor.MOTOR4, 1)
 
-            # TODO: ^ is this redundant? does the same thing as Motor.arm(pi)
+            # TODO: ^ is this redundant? Does the same thing as self.motor.arm(pi)
 
-            # wait for arm
             while self.armed is False:
                 if self.receiver.ARM is True:
                     # perform pre-flight checks
-                    canarm = self.receiver.can_arm()
+                    canarm = Receiver.can_arm()
                     if canarm:
                         self.motor.arm(pi)
                         self.armed(True)
@@ -146,7 +145,7 @@ class FlightController(object):
 
             # flight loop
 
-            while self.receiver.ARM == 1:
+            while self.receiver.ARM is True:
                 # Get Delta Time
                 sys_time_new = pi.get_current_tick()
                 dt = (sys_time_new - sys_time) / 1e6
@@ -156,12 +155,12 @@ class FlightController(object):
                 sys_time = sys_time_new
 
                 # Maps control input into angles
-                control_angles = self.receiver.map_control_input()
+                control_angles = Receiver.map_control_input()
 
                 # Get accelerometer and gyroscope data and compute angles
                 accel_data = IMU.get_acceleration_data(pi, self.imu.MPU6050_handle) - IMU.get_acc_offsets
                 gyro_data = IMU.get_gyroscope_data(pi, self.imu.MPU6050_handle) - IMU.get_gyro_offsets
-                self.imu.euler_state = IMU.calculate_angles(pi, accel_data, gyro_data, dt, self.imu.euler_state)
+                self.imu.euler_state = self.imu.calculate_angles(pi, accel_data, gyro_data, dt, self.imu.euler_state)
 
                 # Compute errors in pitch and roll and yaw rate
                 err = np.array([0 - self.imu.euler_state[0],
@@ -185,7 +184,7 @@ class FlightController(object):
                 # Map control angles into output signal and set motors
                 wm = Motor.map_motor_output(ctrl)
                 print(wm)
-                self.motor.set_motor_pulse(pi, self.motor.MOTOR1, wm[0])
-                self.motor.set_motor_pulse(pi, self.motor.MOTOR2, wm[1])
-                self.motor.set_motor_pulse(pi, self.motor.MOTOR3, wm[2])
-                self.motor.set_motor_pulse(pi, self.motor.MOTOR4, wm[3])
+                Motor.set_motor_pulse(pi, self.motor.MOTOR1, wm[0])
+                Motor.set_motor_pulse(pi, self.motor.MOTOR2, wm[1])
+                Motor.set_motor_pulse(pi, self.motor.MOTOR3, wm[2])
+                Motor.set_motor_pulse(pi, self.motor.MOTOR4, wm[3])
