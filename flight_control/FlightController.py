@@ -120,7 +120,7 @@ class FlightController(object):
         pi.set_PWM_frequency(self.motor.MOTOR4, 400)
 
         # setup IMU
-        MPU6050_handle, self.imu.acc_offsets, self.imu.gyro_offsets = self.imu.setupMPU6050(pi)
+        MPU6050_handle, acc_offsets, gyro_offsets = self.imu.setupMPU6050(pi)
 
         # machine loop
         while True:
@@ -160,9 +160,9 @@ class FlightController(object):
                 control_angles = Receiver.map_control_input()
 
                 # Get accelerometer and gyroscope data and compute angles
-                accel_data = IMU.get_acceleration_data(pi, MPU6050_handle) - IMU.get_acc_offsets(pi, MPU6050_handle)
-                gyro_data = IMU.get_gyroscope_data(pi, MPU6050_handle) - IMU.get_gyro_offsets(pi, MPU6050_handle)
-                self.imu.euler_state = self.imu.calculate_angles(pi, accel_data, gyro_data, dt, self.imu.euler_state)
+                self.imu.accel_data = IMU.get_acceleration_data(pi, MPU6050_handle) - acc_offsets
+                self.imu.gyro_data = IMU.get_gyroscope_data(pi, MPU6050_handle) - gyro_offsets
+                self.imu.euler_state = self.imu.calculate_angles(pi, dt)
 
                 # Compute errors in pitch and roll and yaw rate
                 err = np.array([0 - self.imu.euler_state[0],
