@@ -7,7 +7,7 @@ class IMU(object):
         self.MPU6050_ADDR = MPU6050_ADDR
         self.alpha = alpha
         self.euler_state = np.array([0, 0])
-        self.accel_data = np.array([0,0])
+        self.accel_data = np.array([0, 0])
         self.gyro_data = np.array([0, 0])
 
     # getter for euler state
@@ -168,10 +168,11 @@ class IMU(object):
 
         return mpu6050_handle, acc_offsets, gyro_offsets
 
-    def calculate_angles(self, pi, accel_data, gyro_data, sys_time, euler_state):
+    # NOTE: updated OOP oriented version
+    def calculate_angles(self, pi, sys_time):
         # Estimate angle from accelerometer
-        pitch_acc = np.arctan2(accel_data[0], np.sqrt(np.power(accel_data[1], 2) + np.power(accel_data[2], 2))) * -1
-        roll_acc = np.arctan2(accel_data[1], np.sqrt(np.power(accel_data[0], 2) + np.power(accel_data[2], 2)))
+        pitch_acc = np.arctan2(self.imu.accel_data[0], np.sqrt(np.power(self.imu.accel_data[1], 2) + np.power(self.imu.accel_data[2], 2))) * -1
+        roll_acc = np.arctan2(self.imu.accel_data[1], np.sqrt(np.power(self.imu.accel_data[0], 2) + np.power(self.imu.accel_data[2], 2)))
 
         # Complementary Filter
         acc_angles = np.array([roll_acc * 180 / np.pi, pitch_acc * 180 / np.pi])
@@ -181,5 +182,5 @@ class IMU(object):
         if dt < 0:
             dt = 0
 
-        new_angles = self.alpha * (euler_state + dt * gyro_pr) + (1 - self.alpha) * acc_angles
+        new_angles = self.alpha * (self.imu.euler_state + dt * gyro_pr) + (1 - self.alpha) * acc_angles
         return new_angles
