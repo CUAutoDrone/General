@@ -168,15 +168,15 @@ class IMU(object):
 
         return mpu6050_handle, acc_offsets, gyro_offsets
 
-    # NOTE: updated OOP oriented version
+    # NOTE: updated OOP version
     def calculate_angles(self, pi, sys_time):
         # Estimate angle from accelerometer
-        pitch_acc = np.arctan2(self.imu.accel_data[0], np.sqrt(np.power(self.imu.accel_data[1], 2) + np.power(self.imu.accel_data[2], 2))) * -1
-        roll_acc = np.arctan2(self.imu.accel_data[1], np.sqrt(np.power(self.imu.accel_data[0], 2) + np.power(self.imu.accel_data[2], 2)))
+        pitch_acc = np.arctan2(self.accel_data[0], np.sqrt(np.power(self.accel_data[1], 2) + np.power(self.accel_data[2], 2))) * -1
+        roll_acc = np.arctan2(self.accel_data[1], np.sqrt(np.power(self.accel_data[0], 2) + np.power(self.accel_data[2], 2)))
 
         # Complementary Filter
         acc_angles = np.array([roll_acc * 180 / np.pi, pitch_acc * 180 / np.pi])
-        gyro_pr = np.array([gyro_data[0], gyro_data[1]])
+        gyro_pr = np.array([self.gyro_data[0], self.gyro_data[1]])
 
         dt = (pi.get_current_tick() - sys_time) / 1e6
         if dt < 0:
