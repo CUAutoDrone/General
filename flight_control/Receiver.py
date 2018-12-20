@@ -138,7 +138,7 @@ class Receiver(object):
         return np.array([roll, pitch, yaw, throttle, arm])
 
     @staticmethod
-    def can_arm(self):
+    def can_arm():
         canarm = True
         if pulse_width_ch3 > 1.0:
             canarm = False
