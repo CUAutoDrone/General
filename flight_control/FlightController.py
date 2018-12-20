@@ -113,13 +113,14 @@ class FlightController(object):
         pi.set_mode(self.motor.MOTOR2, pigpio.OUTPUT)
         pi.set_mode(self.motor.MOTOR3, pigpio.OUTPUT)
         pi.set_mode(self.motor.MOTOR4, pigpio.OUTPUT)
+        pi.set_mode(self.motor.MOTOR4, pigpio.OUTPUT)
         pi.set_PWM_frequency(self.motor.MOTOR1, 400)
         pi.set_PWM_frequency(self.motor.MOTOR2, 400)
         pi.set_PWM_frequency(self.motor.MOTOR3, 400)
         pi.set_PWM_frequency(self.motor.MOTOR4, 400)
 
         # setup IMU
-        self.imu.MPU6050_handle, self.imu.acc_offsets, self.imu.gyro_offsets = self.imu.setupMPU6050(pi)
+        MPU6050_handle, self.imu.acc_offsets, self.imu.gyro_offsets = self.imu.setupMPU6050(pi)
 
         # machine loop
         while True:
@@ -136,12 +137,13 @@ class FlightController(object):
                     canarm = Receiver.can_arm()
                     if canarm:
                         self.motor.arm(pi)
-                        self.armed(True)
+                        self.armed = True
 
             # Initialize PID Control
             is_first_loop = 0
             err_sum = 0
             sys_time = pi.get_current_tick()
+            prev_err = 0                          # TODO: edited, need to verify
 
             # flight loop
 
@@ -158,8 +160,8 @@ class FlightController(object):
                 control_angles = Receiver.map_control_input()
 
                 # Get accelerometer and gyroscope data and compute angles
-                accel_data = IMU.get_acceleration_data(pi, self.imu.MPU6050_handle) - IMU.get_acc_offsets
-                gyro_data = IMU.get_gyroscope_data(pi, self.imu.MPU6050_handle) - IMU.get_gyro_offsets
+                accel_data = IMU.get_acceleration_data(pi, MPU6050_handle) - IMU.get_acc_offsets(pi, MPU6050_handle)
+                gyro_data = IMU.get_gyroscope_data(pi, MPU6050_handle) - IMU.get_gyro_offsets(pi, MPU6050_handle)
                 self.imu.euler_state = self.imu.calculate_angles(pi, accel_data, gyro_data, dt, self.imu.euler_state)
 
                 # Compute errors in pitch and roll and yaw rate
@@ -175,14 +177,17 @@ class FlightController(object):
                     u = np.multiply(self.Kp, err) + np.multiply(self.Ki, dt * err_sum)
                     is_first_loop = 1
                 else:
-                    u = np.multiply(self.Kp, err) + np.multiply(self.Ki, dt * err_sum) + np.multiply(self.Kd, (err - prev_err) / dt)
-                # TODO: Fix this, prev_err not defined until 3rd loop, but used in 2nd loop
-                # TODO: if dt is less than 0, dt is equal to 0? Could result in Divide_by_zero error
-                prev_err = err
+                    try:
+                        u = np.multiply(self.Kp, err) + np.multiply(self.Ki, dt * err_sum) + \
+                            np.multiply(self.Kd, (err - prev_err) / dt)
+                    except ZeroDivisionError:
+                        print("delta time is equal to 0 when trying to calculate Kd")
+                prev_err = err              # TODO: do we want this to equal 0 or err before the second loop?
 
                 # Map controls into vector
                 ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
 
+                # TODO: potential sensor for GUI; if so, make wm into a private variable
                 # Map control angles into output signal and set motors
                 wm = Motor.map_motor_output(ctrl)
                 print(wm)
