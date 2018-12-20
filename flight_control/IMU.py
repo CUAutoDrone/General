@@ -178,9 +178,12 @@ class IMU(object):
         acc_angles = np.array([roll_acc * 180 / np.pi, pitch_acc * 180 / np.pi])
         gyro_pr = np.array([self.gyro_data[0], self.gyro_data[1]])
 
+        # TODO: this currently has pi.get_current_tick() - the previous calculated dt in FlightControllery.py's run() method. 
+        #       Is this what we want?
         dt = (pi.get_current_tick() - sys_time) / 1e6
         if dt < 0:
             dt = 0
 
         new_angles = self.alpha * (self.imu.euler_state + dt * gyro_pr) + (1 - self.alpha) * acc_angles
         return new_angles
+
