@@ -5,6 +5,9 @@ import datetime
 from flight_controller import *
 import numpy as np
 import pyqtgraph as pg
+import time
+from multiprocessing import Queue
+from collections import deque
 
 
 # receiver created with receiver channels initialized
@@ -347,13 +350,13 @@ class DroneGUI(QDialog):
         self.qTimer = QTimer(self)
 
         # label to title the data monitor
-        self.sensor_label_title = QLabel("insert_sensor_title_here", self)
-        self.sensor_label_title.move(650,168)
+        self.sensor_label_title = QLabel("Flux Capacitor", self)
+        self.sensor_label_title.move(650,158)
         self.sensor_label_title.setStyleSheet("background-color:rgb(53,53,53);")
 
         # label to hold the data
         self.sensor_label = QLabel("sensor_value", self)
-        self.sensor_label.move(650,180)
+        self.sensor_label.move(650,170)
         self.sensor_label.resize(50,12)
 
         # set interval to update every 500 ms
@@ -365,20 +368,30 @@ class DroneGUI(QDialog):
         self.qTimer.start()
 
         # dummy variable to demonstrate the monitor
-        self.i = 0
+        self.i = np.pi
 
     # gets the sensor's value
     def get_sensor_value(self):
-        self.i += 1.32
+        self.i += 0.000001
 
         # get's the sensor value
         self.sensor_label.setText(str(self.i))
 
+    # creates the plot graph button
     def create_plot_button(self):
         self.plot_button = QPushButton("Show Plot Graph", self)
         self.plot_button.clicked.connect(self.create_plot)
         self.plot_button.move(265,215)
         self.plot_button.setStyleSheet("Black")
+        # time stamp for the graph's delta time initialization
+        self.timestamp = time.time()
+
+    # function to start the timer for QTimer
+    def start_timer(self):
+        if self.timer.isActive():
+            print("Graph is already updating at ", self.timer.interval(), " ms between updates")
+        else:
+            self.timer.start()
 
     # create a live plot graph
     def create_plot(self):
@@ -390,16 +403,57 @@ class DroneGUI(QDialog):
         self.pw.show()
         self.pw.setLabel('left', 'insert_value')
         self.pw.setLabel('bottom', 'Time', units='s')
+        self.pw.setAntialiasing(True)
         self.timer = pg.QtCore.QTimer(self)
 
+        self.stop_plot_button = QPushButton("Stop Graph Update", self)
+        self.stop_plot_button.clicked.connect(self.timer.stop)
+        self.stop_plot_button.move(265, 194)
+        self.stop_plot_button.show()
+
+        self.start_plot_button = QPushButton("Start Graph Update", self)
+        self.start_plot_button.clicked.connect(self.start_timer)
+        self.start_plot_button.move(555,194)
+        self.start_plot_button.show()
+
+        # buffer size for the data
+        self.buffer = 100
+        # queue
+        self.queue = Queue(self.buffer)
+        # deque containing the values
+        self.values_1 = deque([], maxlen=self.buffer)
+        self.values_2 = deque([], maxlen=self.buffer)
+        # deque containing the delta times
+        self.times = deque([], maxlen=self.buffer)
+
         def update():
-            x = np.random.normal(size=(100))
-            y = np.random.normal(size=(100))
-            self.pw.plot(x, y, clear=True)
+            # current delta time
+            t = time.time() - self.timestamp
+
+            # value(s) that we want to track
+            v1 = fc.Kp[0]
+            v2 = fc.Kp[1]
+
+            # put the data into queue
+            self.queue.put([t,v1,v2])
+
+            # get the data from the queue. Will wait until item is available
+            data = self.queue.get(True, None)
+
+            # append data in each deque
+            self.times.append(data[0])
+            self.values_1.append(data[1])
+            self.values_2.append(data[2])
+
+
+            # draw the incoming data
+            self.pw.clear()
+            self.pw.plot(x=list(self.times)[-self.buffer:], y=list(self.values_1)[-self.buffer:],pen='r')
+            self.pw.plot(x=list(self.times)[-self.buffer:], y=list(self.values_2)[-self.buffer:],pen='b')
 
         self.timer.timeout.connect(update)
         # length between updates (in ms)
-        self.timer.start(1000)
+        self.timer.start(2)
 
 
 # a class to read the command line output stream
@@ -409,6 +463,8 @@ class Stream(QObject):
     def write(self, text):
         self.newText.emit(str(text))
 
+    def flush(self):
+        pass
 
 
 if __name__ == '__main__':
@@ -419,6 +475,5 @@ if __name__ == '__main__':
     gallery.setGeometry(0, 0,800, 500)
     gallery.show()
     sys.exit(app.exec_())
-
 
 
