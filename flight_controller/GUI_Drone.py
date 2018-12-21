@@ -2,8 +2,10 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import datetime
-import numpy as np
 from flight_controller import *
+import numpy as np
+import pyqtgraph as pg
+
 
 # receiver created with receiver channels initialized
 receiver = Receiver(17, 27, 22, 18, 23)
@@ -16,8 +18,9 @@ fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
                       np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
 
 # TODO:
-# create data monitor for certain aspects,
-# buttons to have drone perform certain maneuvers
+# Finish graph
+# potential sensor for 'wm' variable in FlightController.py
+# buttons to have drone perform certain maneuvers (need further guidance)
 #
 
 
@@ -49,6 +52,8 @@ class DroneGUI(QDialog):
         # installs the event filter for 'space bar' and 'a' keys
         qApp.installEventFilter(self)
 
+        # creates a button to deliver a live plot graph
+        self.create_plot_button()
 
 
     # filters space bar to allow it to be a killswitch only
@@ -126,7 +131,7 @@ class DroneGUI(QDialog):
 
         # button to kill the drone
         self.killswitch_button = QPushButton('KILLSWITCH', self)
-        self.killswitch_button.move(590, 0)
+        self.killswitch_button.move(690, 0)
         self.killswitch_button.setDefault(False)
         self.killswitch_button.setAutoDefault(False)
         self.killswitch_button.setFont(QFont("Helvetica", 17.5))
@@ -139,7 +144,7 @@ class DroneGUI(QDialog):
         self.undo_killswitch_button = QPushButton('Unlock ARM', self)
         self.undo_killswitch_button.setDefault(False)
         self.undo_killswitch_button.setAutoDefault(False)
-        self.undo_killswitch_button.move(590, 62)
+        self.undo_killswitch_button.move(690, 62)
         self.undo_killswitch_button.setFont(QFont("Helvetica", 12))
         self.undo_killswitch_button.resize(75, 30)
         self.undo_killswitch_button.clicked.connect(self.undo_killswitch)
@@ -305,11 +310,11 @@ class DroneGUI(QDialog):
     def create_shortcut_labels(self):
         # label for key shortcuts
         self.key_a_shortcut = QLabel(self)
-        self.key_a_shortcut.move(612, 390)
+        self.key_a_shortcut.move(712, 472)
         self.key_a_shortcut.setText("Press 'a' to arm")
         self.key_spacebar_shortcut = QLabel(self)
-        self.key_spacebar_shortcut.move(540, 402)
-        self.key_spacebar_shortcut.setText("Press 'space bar' to killswitch")
+        self.key_spacebar_shortcut.move(640, 485)
+        self.key_spacebar_shortcut.setText("          'space bar' to killswitch")
 
     def onUpdateText(self, text):
         cursor = self.log.textCursor()
@@ -325,6 +330,7 @@ class DroneGUI(QDialog):
     def create_log(self):
         self.log = QTextEdit(self)
         self.log.move(0, 215)
+        self.log.resize(260,283)
         self.log.moveCursor(QTextCursor.Start)
         self.log.ensureCursorVisible()
         self.log.setLineWrapMode(QTextEdit.FixedPixelWidth)
@@ -342,12 +348,13 @@ class DroneGUI(QDialog):
 
         # label to title the data monitor
         self.sensor_label_title = QLabel("insert_sensor_title_here", self)
-        self.sensor_label_title.move(550,288)
+        self.sensor_label_title.move(650,168)
         self.sensor_label_title.setStyleSheet("background-color:rgb(53,53,53);")
 
         # label to hold the data
         self.sensor_label = QLabel("sensor_value", self)
-        self.sensor_label.move(550,300)
+        self.sensor_label.move(650,180)
+        self.sensor_label.resize(50,12)
 
         # set interval to update every 500 ms
         self.qTimer.setInterval(500)
@@ -367,6 +374,34 @@ class DroneGUI(QDialog):
         # get's the sensor value
         self.sensor_label.setText(str(self.i))
 
+    def create_plot_button(self):
+        self.plot_button = QPushButton("Show Plot Graph", self)
+        self.plot_button.clicked.connect(self.create_plot)
+        self.plot_button.move(265,215)
+        self.plot_button.setStyleSheet("Black")
+
+    # create a live plot graph
+    def create_plot(self):
+        self.pw = pg.PlotWidget(self)
+        self.pw.showGrid(x=True,y=True)
+        self.pw.setTitle('insert_title')
+        self.pw.move(265,215)
+        self.pw.resize(400,282)
+        self.pw.show()
+        self.pw.setLabel('left', 'insert_value')
+        self.pw.setLabel('bottom', 'Time', units='s')
+        self.timer = pg.QtCore.QTimer(self)
+
+        def update():
+            x = np.random.normal(size=(100))
+            y = np.random.normal(size=(100))
+            self.pw.plot(x, y, clear=True)
+
+        self.timer.timeout.connect(update)
+        # length between updates (in ms)
+        self.timer.start(1000)
+
+
 # a class to read the command line output stream
 class Stream(QObject):
     newText = pyqtSignal(str)
@@ -381,12 +416,9 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     gallery = DroneGUI()
-    gallery.setGeometry(0, 0, 700, 415)
+    gallery.setGeometry(0, 0,800, 500)
     gallery.show()
     sys.exit(app.exec_())
-
-
-
 
 
 
