@@ -21,10 +21,9 @@ fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
                       np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
 
 # TODO:
-# Finish graph
-# potential sensor for 'wm' variable in FlightController.py
+# potential sensor/graph plot for 'wm' variable in FlightController.py
 # buttons to have drone perform certain maneuvers (need further guidance)
-#
+# transition to layouts, get rid of absolute positioning
 
 
 class DroneGUI(QDialog):
@@ -57,7 +56,6 @@ class DroneGUI(QDialog):
 
         # creates a button to deliver a live plot graph
         self.create_plot_button()
-
 
     # filters space bar to allow it to be a killswitch only
     # filters 'a' to allow it to arm the drone only
@@ -92,8 +90,6 @@ class DroneGUI(QDialog):
                     return True
                 else:
                     return True
-
-
         return super(DroneGUI, self).eventFilter(obj, event)
 
 
@@ -389,7 +385,7 @@ class DroneGUI(QDialog):
     # function to start the timer for QTimer
     def start_timer(self):
         if self.timer.isActive():
-            print("Graph is already updating at ", self.timer.interval(), " ms between updates")
+            print("Graph is already updating at ", self.timer.interval(), " ms between data retrievals")
         else:
             self.timer.start()
 
@@ -397,13 +393,14 @@ class DroneGUI(QDialog):
     def create_plot(self):
         self.pw = pg.PlotWidget(self)
         self.pw.showGrid(x=True,y=True)
-        self.pw.setTitle('insert_title')
+        self.pw.setTitle('Demo uses sin function and Kp[0] values')
         self.pw.move(265,215)
         self.pw.resize(400,282)
         self.pw.show()
         self.pw.setLabel('left', 'insert_value')
         self.pw.setLabel('bottom', 'Time', units='s')
         self.pw.setAntialiasing(True)
+        self.pw.setYRange(-1,1)
         self.timer = pg.QtCore.QTimer(self)
 
         self.stop_plot_button = QPushButton("Stop Graph Update", self)
@@ -431,8 +428,8 @@ class DroneGUI(QDialog):
             t = time.time() - self.timestamp
 
             # value(s) that we want to track
-            v1 = fc.Kp[0]
-            v2 = fc.Kp[1]
+            v1 = np.sin(t)
+            v2 = fc.Kp[0]
 
             # put the data into queue
             self.queue.put([t,v1,v2])
@@ -475,5 +472,6 @@ if __name__ == '__main__':
     gallery.setGeometry(0, 0,800, 500)
     gallery.show()
     sys.exit(app.exec_())
+
 
 
