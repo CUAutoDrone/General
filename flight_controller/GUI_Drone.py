@@ -1,14 +1,14 @@
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
 import datetime
-from flight_controller import *
+import time
+from collections import deque
+from multiprocessing import Queue
 import numpy as np
 import pyqtgraph as pg
-import time
-from multiprocessing import Queue
-from collections import deque
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
+from flight_controller import *
 
 # receiver created with receiver channels initialized
 receiver = Receiver(17, 27, 22, 18, 23)
@@ -57,6 +57,9 @@ class DroneGUI(QDialog):
         # creates a button to deliver a live plot graph
         self.create_plot_button()
 
+        # create the flight motion labels
+        self.create_flight_motion_labels()
+
     # filters space bar to allow it to be a killswitch only
     # filters 'a' to allow it to arm the drone only
     def eventFilter(self, obj, event):
@@ -78,7 +81,7 @@ class DroneGUI(QDialog):
                     return True
             if event.key() == Qt.Key_A:
                 if not(self.arm_button.isChecked()):
-                    print("ARMING")
+                    print("Initialize Arming Process")
                     self.arm_button.setStyleSheet("background-color: Green")
                     self.undo_killswitch_button.setEnabled(False)
                     self.killswitch_button.setEnabled(True)
@@ -161,22 +164,22 @@ class DroneGUI(QDialog):
             self.killswitch_button.setEnabled(False)
             self.killswitch_button.setStyleSheet("background-color: Darkred; color:black")
             self.arm_button.setStyleSheet("background-color: Gray")
-            #fc.receiver.ARM = 0
-            #fc.receiver.can_arm()
+            # fc.receiver.ARM = False
+            # fc.receiver.can_arm()
 
     # allows the drone to be armed again
     def undo_killswitch(self):
-        print("ARM button unlocked")
+        print("Arm button unlocked")
         self.arm_button.setEnabled(True)
         self.undo_killswitch_button.setEnabled(False)
         self.killswitch_button.setStyleSheet("background-color: red")
         self.undo_killswitch_button.setStyleSheet("background-color: Gold")
         self.arm_button.setStyleSheet("background-color: Green")
-        #fc.receiver.ARM = 1
+        # fc.receiver.ARM = True
 
     # arms the drone
     def arm_drone(self):
-        print("ARMING")
+        print("Initialize Arming Process...")
         self.undo_killswitch_button.setEnabled(False)
         self.killswitch_button.setEnabled(True)
         self.undo_killswitch_button.setStyleSheet("background-color:rgb(53,53,53);")
@@ -385,9 +388,13 @@ class DroneGUI(QDialog):
     # function to start the timer for QTimer
     def start_timer(self):
         if self.timer.isActive():
+            # sets the Y Range for the graph
+            self.pw.setYRange(-1, 1)
             print("Graph is already updating at ", self.timer.interval(), " ms between data retrievals")
         else:
             self.timer.start()
+            # sets the Y Range for the graph
+            self.pw.setYRange(-1, 1)
 
     # create a live plot graph
     def create_plot(self):
@@ -400,6 +407,7 @@ class DroneGUI(QDialog):
         self.pw.setLabel('left', 'insert_value')
         self.pw.setLabel('bottom', 'Time', units='s')
         self.pw.setAntialiasing(True)
+        # sets the Y Range for the graph
         self.pw.setYRange(-1,1)
         self.timer = pg.QtCore.QTimer(self)
 
@@ -415,7 +423,7 @@ class DroneGUI(QDialog):
 
         # buffer size for the data
         self.buffer = 100
-        # queue
+        # queue to get the current delta time and values
         self.queue = Queue(self.buffer)
         # deque containing the values
         self.values_1 = deque([], maxlen=self.buffer)
@@ -451,6 +459,21 @@ class DroneGUI(QDialog):
         self.timer.timeout.connect(update)
         # length between updates (in ms)
         self.timer.start(2)
+
+    def create_flight_motion_labels(self):
+        self.flight_motion_label = QLabel(self)
+        self.flight_motion_label.setFrameShape(QFrame.StyledPanel)
+        self.flight_motion_label.setFrameShadow(QFrame.Raised)
+        self.flight_motion_label.move(350,5)
+        self.flight_motion_label.setText("Flight Motion Pattern")
+
+        self.square_pattern = QPushButton("Square", self)
+        self.square_pattern.move(350,20)
+        self.square_pattern.clicked.connect(self.do_square_pattern)
+
+    def do_square_pattern(self):
+        print("Completing Square Flight Motion Pattern...")
+        print("[Currently Under Development]")
 
 
 # a class to read the command line output stream
