@@ -90,6 +90,7 @@ class FlightController(object):
         self._imu = imu
 
     # run flight loop
+    # TODO: break run() into smaller components
     def run(self):
         pi = pigpio.pi()
         print(pi.connected)
@@ -100,6 +101,7 @@ class FlightController(object):
         pi.set_mode(self.receiver.RECEIVER_CH1, pigpio.INPUT)
         pi.set_mode(self.receiver.RECEIVER_CH1, pigpio.INPUT)
         pi.set_mode(self.receiver.RECEIVER_CH5, pigpio.INPUT)
+        print("Receiver input pins set")
 
         # initialize callbacks
         cb1 = pi.callback(self.receiver.RECEIVER_CH1, pigpio.EITHER_EDGE, Receiver.cbf1)
@@ -107,6 +109,7 @@ class FlightController(object):
         cb3 = pi.callback(self.receiver.RECEIVER_CH3, pigpio.EITHER_EDGE, Receiver.cbf3)
         cb4 = pi.callback(self.receiver.RECEIVER_CH4, pigpio.EITHER_EDGE, Receiver.cbf4)
         cb5 = pi.callback(self.receiver.RECEIVER_CH5, pigpio.EITHER_EDGE, self.receiver.cbf5)
+        print("Callbacks initialized")
 
         # set motor output pins
         pi.set_mode(self.motor.MOTOR1, pigpio.OUTPUT)
@@ -118,35 +121,35 @@ class FlightController(object):
         pi.set_PWM_frequency(self.motor.MOTOR2, 400)
         pi.set_PWM_frequency(self.motor.MOTOR3, 400)
         pi.set_PWM_frequency(self.motor.MOTOR4, 400)
+        print("PWM frequency set")
 
         # setup IMU
         MPU6050_handle, acc_offsets, gyro_offsets = self.imu.setupMPU6050(pi)
+        print("IMU setup")
 
         # machine loop
         while True:
-            Motor.set_motor_pulse(pi, self.motor.MOTOR1, 1)
-            Motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
-            Motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
-            Motor.set_motor_pulse(pi, self.motor.MOTOR4, 1)
-
+            # Motor.set_motor_pulse(pi, self.motor.MOTOR1, 1)
+            # Motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
+            # Motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
+            # Motor.set_motor_pulse(pi, self.motor.MOTOR4, 1)
+            #
             # TODO: ^ is this redundant? Does the same thing as self.motor.arm(pi)
 
             while self.armed is False:
                 if self.receiver.ARM is True:
                     # perform pre-flight checks
-                    canarm = Receiver.can_arm()
-                    if canarm:
+                    if Receiver.can_arm():
                         self.motor.arm(pi)
                         self.armed = True
+                        print("Vehicle is armed")
 
             # Initialize PID Control
             is_first_loop = 0
             err_sum = 0
             sys_time = pi.get_current_tick()
             prev_err = 0                          # TODO: edited, need to verify
-
             # flight loop
-
             while self.receiver.ARM is True:
                 # Get Delta Time
                 sys_time_new = pi.get_current_tick()
@@ -182,7 +185,7 @@ class FlightController(object):
                             np.multiply(self.Kd, (err - prev_err) / dt)
                     except ZeroDivisionError:
                         print("delta time is equal to 0 when trying to calculate Kd")
-                prev_err = err              # TODO: do we want this to equal 0 or err before the second loop?
+                prev_err = err              # TODO: do we want this to equal 0 or the first err before the second loop?
 
                 # Map controls into vector
                 ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
