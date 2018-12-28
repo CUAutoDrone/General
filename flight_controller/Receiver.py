@@ -139,9 +139,9 @@ class Receiver(object):
 
     @staticmethod
     def can_arm():
-        canarm = True
         if pulse_width_ch3 > 1.0:
-            canarm = False
             print("Failed Pre-Flight Check.  Throttle Not Zero")
-
-        return canarm
+            return False
+        else:
+            print("Passed arming requirements")
+            return True
