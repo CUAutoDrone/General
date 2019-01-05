@@ -79,6 +79,7 @@ class DroneGUI(QDialog):
 
     # filters space bar to allow it to be a killswitch only
     # filters 'a' to allow it to arm the drone only
+    # filters shift + 'q' to allow it to close the app
     def eventFilter(self, obj, event):
         if event.type() == QEvent.KeyPress:
             if event.key() == Qt.Key_Space:
@@ -115,6 +116,8 @@ class DroneGUI(QDialog):
                     return True
                 else:
                     return True
+            if event.key() == Qt.Key_Q:
+                DroneGUI.close(self)
         return super(DroneGUI, self).eventFilter(obj, event)
 
     def set_size_policy(self):
@@ -141,9 +144,11 @@ class DroneGUI(QDialog):
         self.data_tab = QWidget()
         self.settings_tab = QWidget()
         self.flight_pattern_tab = QWidget()
+        self.CV_tab = QWidget()
         self.tabWidget.addTab(self.settings_tab, "Settings")
         self.tabWidget.addTab(self.data_tab, "Data")
         self.tabWidget.addTab(self.flight_pattern_tab, "Flight Pattern")
+        self.tabWidget.addTab(self.CV_tab, "CV")
         self.tabWidget.show()
 
     def create_palette(self):
@@ -469,9 +474,9 @@ class DroneGUI(QDialog):
         # label for key shortcuts
         self.key_a_shortcut = QLabel(self)
         self.key_a_shortcut.move(l-123,100)
-        self.key_a_shortcut.setText("Press 'a' to arm,")
+        self.key_a_shortcut.setText("Press: 'a' to arm,")
         self.key_spacebar_shortcut = QLabel(self)
-        self.key_spacebar_shortcut.move(l-158, 114)
+        self.key_spacebar_shortcut.move(l-158, 116)
         self.key_spacebar_shortcut.setText("          'space bar' to killswitch")
 
     def onUpdateText(self, text):
@@ -658,4 +663,6 @@ if __name__ == '__main__':
     gallery = DroneGUI()
     gallery.setGeometry(0, 0, l, w)
     gallery.show()
+    print("Cornell Aerial Robotics 2019")
+    print("Press 'q' to exit")
     sys.exit(app.exec_())
