@@ -4,6 +4,7 @@ from collections import deque
 from multiprocessing import Queue
 import numpy as np
 import pyqtgraph as pg
+import os
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -11,10 +12,10 @@ from PyQt5.QtWidgets import *
 from flight_controller import *
 
 # length of GUI
-l = 800
+l = 960
 
 # width of GUI
-w = 500
+w = 640
 
 # receiver created with receiver channels initialized
 receiver = Receiver(17, 27, 22, 18, 23)
@@ -100,6 +101,7 @@ class DroneGUI(QDialog):
                     return True
             if event.key() == Qt.Key_A:
                 if not(self.arm_button.isChecked()):
+                    print()
                     print("Initialize Arming Process")
                     self.arm_button.setStyleSheet("background-color: Green")
                     self.undo_killswitch_button.setEnabled(False)
@@ -235,6 +237,7 @@ class DroneGUI(QDialog):
 
     # arms the drone
     def arm_drone(self):
+        print()
         print("Initialize Arming Process...")
         self.undo_killswitch_button.setEnabled(False)
         self.killswitch_button.setEnabled(True)
@@ -492,8 +495,8 @@ class DroneGUI(QDialog):
     # creates a log for the command line output
     def create_log(self):
         self.log = QTextEdit(self)
-        self.log.move(l-260, w-325)
-        self.log.resize(260,325)
+        self.log.move(l-260, w-465)
+        self.log.resize(260, w-175)
         self.log.moveCursor(QTextCursor.Start)
         self.log.ensureCursorVisible()
         self.log.setLineWrapMode(QTextEdit.FixedPixelWidth)
@@ -569,7 +572,7 @@ class DroneGUI(QDialog):
         self.pw.showGrid(x=True,y=True)
         self.pw.setTitle('Demo uses sin function and Kp[0] values')
         self.pw.move(0,20)
-        self.pw.resize(400,282)
+        self.pw.resize(l/2,w/2)
         self.pw.show()
         self.pw.setLabel('left', 'insert_value')
         self.pw.setLabel('bottom', 'Time', units='s')
@@ -585,7 +588,7 @@ class DroneGUI(QDialog):
 
         self.start_plot_button = QPushButton("Start Graph Update", self.data_tab)
         self.start_plot_button.clicked.connect(self.start_timer)
-        self.start_plot_button.move(290,0)
+        self.start_plot_button.move(l/2-110,0)
         self.start_plot_button.show()
 
         # buffer size for the data
@@ -663,6 +666,6 @@ if __name__ == '__main__':
     gallery = DroneGUI()
     gallery.setGeometry(0, 0, l, w)
     gallery.show()
-    print("Cornell Aerial Robotics 2019")
-    print("Press 'q' to exit")
+    print("Cornell University Aerial Robotics 2019")
+    print("- Press 'q' to exit")
     sys.exit(app.exec_())
