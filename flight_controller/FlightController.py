@@ -1,6 +1,7 @@
 import pigpio
 import numpy as np
 from flight_controller import *
+import time
 
 
 # represents the flight controller
@@ -18,6 +19,11 @@ class FlightController(object):
         self.imu = the_imu
         self.motor = the_motor
         self.armed = False
+
+        # used for PID updates
+        self.error_sum = 0
+        self.sys_time = 0
+        self.prev_error = 0  # TODO: verify
 
     # getter for armed status
     @property
@@ -89,6 +95,57 @@ class FlightController(object):
     def imu(self, imu):
         self._imu = imu
 
+    # Updates current PID
+    def update_PID(self, pi):
+        # get delta time
+        sys_time_new = pi.get_current_tick()
+        dt = (sys_time_new - self.sys_time) / 1e6
+
+        # correct for rollover
+        if dt < 0:
+            dt = 0
+        self.sys_time = sys_time_new
+
+        # Maps control input into angles
+        control_angles = Receiver.map_control_input()
+
+        # Get accelerometer and gyroscope data and compute angles
+        self.imu.set_accel_data(self.imu.get_updated_accelerometer_data(pi) - self.imu.acc_offsets)
+        self.imu.set_gyro_data(self.imu.get_updated_gyroscope_data(pi) - self.imu.gyro_offsets)
+        # TODO: see IMU calculate_angles method; possible bug
+        self.imu.set_euler_state(self.imu.calculate_angles(pi, dt))
+
+        # Compute errors in pitch and roll and yaw rate
+        error = np.array([0 - self.imu.euler_state[0],
+                          0 - self.imu.euler_state[1],
+                          0])
+
+        # compute error integral
+        self.error_sum = self.error_sum + error
+
+        # computer delta error
+        delta_error = error - self.prev_error
+
+        # PID law
+        if dt > 0:
+            u = np.multiply(self.Kp, error) + np.multiply(self.Ki, dt * self.error_sum) + \
+                np.multiply(self.Kd, delta_error / dt)
+        else:
+            u = np.multiply(self.Kp, error) + np.multiply(self.Ki, dt * self.error_sum)
+
+        self.prev_error = error
+
+        # Map controls into vector
+        ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
+
+        wm = Motor.map_motor_output(ctrl)
+
+        print(wm)
+        Motor.set_motor_pulse(pi, self.motor.MOTOR1, wm[0])
+        Motor.set_motor_pulse(pi, self.motor.MOTOR2, wm[1])
+        Motor.set_motor_pulse(pi, self.motor.MOTOR3, wm[2])
+        Motor.set_motor_pulse(pi, self.motor.MOTOR4, wm[3])
+
     # run flight loop
     # TODO: break run() into smaller components
     def run(self):
@@ -97,9 +154,9 @@ class FlightController(object):
 
         # set receiver input pins
         pi.set_mode(self.receiver.RECEIVER_CH1, pigpio.INPUT)
-        pi.set_mode(self.receiver.RECEIVER_CH1, pigpio.INPUT)
-        pi.set_mode(self.receiver.RECEIVER_CH1, pigpio.INPUT)
-        pi.set_mode(self.receiver.RECEIVER_CH1, pigpio.INPUT)
+        pi.set_mode(self.receiver.RECEIVER_CH2, pigpio.INPUT)
+        pi.set_mode(self.receiver.RECEIVER_CH3, pigpio.INPUT)
+        pi.set_mode(self.receiver.RECEIVER_CH4, pigpio.INPUT)
         pi.set_mode(self.receiver.RECEIVER_CH5, pigpio.INPUT)
         print("Receiver input pins set")
 
@@ -117,6 +174,9 @@ class FlightController(object):
         pi.set_mode(self.motor.MOTOR3, pigpio.OUTPUT)
         pi.set_mode(self.motor.MOTOR4, pigpio.OUTPUT)
         pi.set_mode(self.motor.MOTOR4, pigpio.OUTPUT)
+        print("Motor output pins set")
+
+        # set PWM frequencies
         pi.set_PWM_frequency(self.motor.MOTOR1, 400)
         pi.set_PWM_frequency(self.motor.MOTOR2, 400)
         pi.set_PWM_frequency(self.motor.MOTOR3, 400)
@@ -124,8 +184,11 @@ class FlightController(object):
         print("PWM frequency set")
 
         # setup IMU
-        MPU6050_handle, acc_offsets, gyro_offsets = self.imu.setupMPU6050(pi)
-        print("IMU setup")
+        self.imu.setupMPU6050(pi)
+
+        # determine acceleration and gyroscopic offsets
+        self.imu.set_acc_offsets(pi)
+        self.imu.set_gyro_offsets(pi)
 
         # machine loop
         while True:
@@ -133,8 +196,7 @@ class FlightController(object):
             # Motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
             # Motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
             # Motor.set_motor_pulse(pi, self.motor.MOTOR4, 1)
-            #
-            # TODO: ^ is this redundant? Does the same thing as self.motor.arm(pi)
+            # TODO: is this redundant? Does the same thing as self.motor.arm(pi)
 
             while self.armed is False:
                 if self.receiver.ARM is True:
@@ -144,57 +206,10 @@ class FlightController(object):
                         self.armed = True
                         print("Vehicle is armed")
 
-            # Initialize PID Control
-            is_first_loop = 0
-            err_sum = 0
-            sys_time = pi.get_current_tick()
-            prev_err = 0                          # TODO: edited, need to verify
+            # obtains current system time for PID control
+            self.sys_time = pi.get_current_tick()
+
             # flight loop
             while self.receiver.ARM is True:
-                # Get Delta Time
-                sys_time_new = pi.get_current_tick()
-                dt = (sys_time_new - sys_time) / 1e6
-                # correct for rollover
-                if dt < 0:
-                    dt = 0
-                sys_time = sys_time_new
-
-                # Maps control input into angles
-                control_angles = Receiver.map_control_input()
-
-                # Get accelerometer and gyroscope data and compute angles
-                self.imu.accel_data = IMU.get_acceleration_data(pi, MPU6050_handle) - acc_offsets
-                self.imu.gyro_data = IMU.get_gyroscope_data(pi, MPU6050_handle) - gyro_offsets
-                self.imu.euler_state = self.imu.calculate_angles(pi, dt)
-
-                # Compute errors in pitch and roll and yaw rate
-                err = np.array([0 - self.imu.euler_state[0],
-                                0 - self.imu.euler_state[1],
-                                0])
-
-                # compute error integral
-                err_sum = err_sum + err
-
-                # PID law
-                if is_first_loop == 0:
-                    u = np.multiply(self.Kp, err) + np.multiply(self.Ki, dt * err_sum)
-                    is_first_loop = 1
-                else:
-                    try:
-                        u = np.multiply(self.Kp, err) + np.multiply(self.Ki, dt * err_sum) + \
-                            np.multiply(self.Kd, (err - prev_err) / dt)
-                    except ZeroDivisionError:
-                        print("delta time is equal to 0 when trying to calculate Kd")
-                prev_err = err              # TODO: do we want this to equal 0 or the first err before the second loop?
-
-                # Map controls into vector
-                ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
-
-                # TODO: potential sensor for GUI; if so, make wm into a private variable
-                # Map control angles into output signal and set motors
-                wm = Motor.map_motor_output(ctrl)
-                print(wm)
-                Motor.set_motor_pulse(pi, self.motor.MOTOR1, wm[0])
-                Motor.set_motor_pulse(pi, self.motor.MOTOR2, wm[1])
-                Motor.set_motor_pulse(pi, self.motor.MOTOR3, wm[2])
-                Motor.set_motor_pulse(pi, self.motor.MOTOR4, wm[3])
+                # PID loop
+                self.update_PID(pi)
