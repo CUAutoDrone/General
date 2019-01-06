@@ -28,72 +28,72 @@ class FlightController(object):
     # getter for armed status
     @property
     def armed(self):
-        return self.armed
+        return self._armed
 
     # setter for armed status
     @armed.setter
     def armed(self, armed):
-        self.armed = armed
+        self._armed = armed
 
     # getter for proportional gain
     @property
     def Kp(self):
-        return self.Kp
+        return self._Kp
 
     # setter for proportional gain
     @Kp.setter
     def Kp(self, Kp):
-        self.Kp = Kp
+        self._Kp = Kp
 
     # getter for integral gain
     @property
     def Ki(self):
-        return self.Ki
+        return self._Ki
 
     # setter for integral gain
     @Ki.setter
     def Ki(self, Ki):
-        self.Ki = Ki
+        self._Ki = Ki
 
     # getter for derivative gain
     @property
     def Kd(self):
-        return self.Kd
+        return self._Kd
 
     # setter for derivative gain
     @Kd.setter
     def Kd(self, Kd):
-        self.Kd = Kd
+        self._Kd = Kd
 
     # getter for receiver
     @property
     def receiver(self):
-        return self.receiver
+        return self._receiver
 
     # setter for receiver
     @receiver.setter
     def receiver(self, receiver):
-        self.receiver = receiver
+        self._receiver = receiver
 
     # getter for motor
     @property
     def motor(self):
-        return self.motor
+        return self._motor
 
     # setter for motor
     @motor.setter
     def motor(self, motor):
-        self.motor = motor
+        self._motor = motor
 
     # getter for imu
     @property
     def imu(self):
-        return self.imu
+        return self._imu
 
     # setter for imu
     @imu.setter
     def imu(self, imu):
-        self.imu = imu
+        self._imu = imu
 
     # TODO: pre-flight check list
     # goes through list of Pre-Flight Checks
@@ -155,7 +155,7 @@ class FlightController(object):
 
         # Map controls into vector
         ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
-        
+
         wm = Motor.map_motor_output(ctrl)
         print(wm)
 
@@ -211,10 +211,10 @@ class FlightController(object):
         while True:
             # TODO: Necessary? Does the same thing as self.motor.arm(pi)
             # send zero signal to motors
-            # self.motor.set_motor_pulse(pi, self.motor.MOTOR1, 1)
-            # self.motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
-            # self.motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
-            # self.motor.set_motor_pulse(pi, self.motor.MOTOR4, 1)
+            # Motor.set_motor_pulse(pi, self.motor.MOTOR1, 1)
+            # Motor.motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
+            # Motor.motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
+            # Motor.motor.set_motor_pulse(pi, self.motor.MOTOR4, 1)
 
             while self.armed is False:
                 if self.receiver.ARM is True:
