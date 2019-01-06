@@ -66,7 +66,7 @@ class DroneGUI(QDialog):
         # adds the data monitor
         self.create_data_monitor()
 
-        # installs the event filter for 'space bar' and 'a' keys
+        # installs the event filter for 'space bar' and 'a'
         qApp.installEventFilter(self)
 
         # creates a button to deliver a live plot graph
@@ -80,7 +80,6 @@ class DroneGUI(QDialog):
 
     # filters space bar to allow it to be a killswitch only
     # filters 'a' to allow it to arm the drone only
-    # filters shift + 'q' to allow it to close the app
     def eventFilter(self, obj, event):
         if event.type() == QEvent.KeyPress:
             if event.key() == Qt.Key_Space:
@@ -118,8 +117,6 @@ class DroneGUI(QDialog):
                     return True
                 else:
                     return True
-            if event.key() == Qt.Key_Q:
-                DroneGUI.close(self)
         return super(DroneGUI, self).eventFilter(obj, event)
 
     def set_size_policy(self):
@@ -187,6 +184,7 @@ class DroneGUI(QDialog):
         self.arm_button.setCheckable(True)
         self.arm_button.setEnabled(True)
         self.arm_button.clicked.connect(self.arm_drone)
+        self.arm_button.setShortcut("A")
 
         # button to kill the drone
         self.killswitch_button = QPushButton('KILLSWITCH', self)
@@ -198,6 +196,7 @@ class DroneGUI(QDialog):
         self.killswitch_button.clicked.connect(self.kill_motor)
         self.killswitch_button.setStyleSheet("background-color: red")
         self.killswitch_button.setEnabled(False)
+        self.killswitch_button.setShortcut("Space")
 
         # button to undo kill switch
         self.undo_killswitch_button = QPushButton('Unlock ARM', self)
@@ -209,6 +208,13 @@ class DroneGUI(QDialog):
         self.undo_killswitch_button.clicked.connect(self.undo_killswitch)
         self.undo_killswitch_button.setStyleSheet("background-color:rgb(53,53,53);")
         self.undo_killswitch_button.setEnabled(False)
+
+        # button to exit the application
+        self.exit_app_button = QPushButton('exit', self)
+        self.exit_app_button.resize(0,0)
+        self.exit_app_button.setShortcut("Shift+Q")
+        self.exit_app_button.clicked.connect(self.exit_application)
+
 
     # killswitch for the drone
     def kill_motor(self):
@@ -647,6 +653,10 @@ class DroneGUI(QDialog):
         print("Completing Square Flight Motion Pattern...")
         print("[Currently Under Development]")
 
+    # exits the application
+    def exit_application(self):
+        DroneGUI.close(self)
+
 
 # a class to read the command line output stream
 class Stream(QObject):
@@ -667,5 +677,6 @@ if __name__ == '__main__':
     gallery.setGeometry(0, 0, l, w)
     gallery.show()
     print("Cornell University Aerial Robotics 2019")
-    print("- Press 'q' to exit")
+    print("- Press Shift + 'Q' to exit")
     sys.exit(app.exec_())
+
