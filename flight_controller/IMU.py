@@ -9,48 +9,61 @@ class IMU(object):
         self.euler_state = np.array([0, 0])
         self.accel_data = np.array([0, 0])
         self.gyro_data = np.array([0, 0])
-        self.acc_offsets = np.array([0,0,0])
-        self.gyro_offsets = np.array([0,0,0])
+        self.acc_offsets = None
+        self.gyro_offsets = None
         self.mpu6050_handle = None
 
     # getter for euler state
-    def get_euler_state(self):
+    @property
+    def euler_state(self):
         return self.euler_state
 
     # setter for euler state
-    def set_euler_state(self, data):
-        self.euler_state = data
-        return self.euler_state
+    @euler_state.setter
+    def euler_state(self, euler_state):
+        self.euler_state = euler_state
 
     # getter for acceleration data
-    def get_accel_data(self):
+    @property
+    def accel_data(self):
         return self.accel_data
 
     # setter for acceleration data
-    def set_accel_data(self, data):
-        self.accel_data = data
-        return self.accel_data
+    @accel_data.setter
+    def accel_data(self, accel_data):
+        self.accel_data = accel_data
 
     # getter for gyroscopic data
-    def get_gyro_data(self):
+    @property
+    def gyro_data(self):
         return self.gyro_data
 
     # setter for gyroscopic data
-    def set_gyro_data(self, data):
-        self.gyro_data = data
-        return self.gyro_data
+    @gyro_data.setter
+    def gyro_data(self, gyro_data):
+        self.gyro_data = gyro_data
 
     # getter for mpu6050_handle data
-    def get_mpu6050_handle(self):
+    @property
+    def mpu6050_handle(self):
         return self.mpu6050_handle
 
     # setter for mpu6050_handle data
-    def set_mpu6050_handle(self, data):
-        self.mpu6050_handle = data
-        return self.mpu6050_handle
+    @mpu6050_handle.setter
+    def mpu6050_handle(self, mpu6050_handle):
+        self.mpu6050_handle = mpu6050_handle
 
+    # getter for alpha
+    @property
+    def alpha(self):
+        return self.alpha
 
-    def set_acc_offsets(self, pi):
+    # setter for alpha
+    @alpha.setter
+    def alpha(self, alpha):
+        self.alpha = alpha
+
+    def update_accelerometer_offsets(self, pi):
         sum_acc_x = 0
         sum_acc_y = 0
         sum_acc_z = 0
@@ -81,10 +94,11 @@ class IMU(object):
         AcY_mean = AcY_mean / 65535 * 4
         AcZ_mean = AcZ_mean / 65535 * 4
 
-        self.set_acc_offsets(np.array([AcX_mean, AcY_mean, AcZ_mean + 1]))
-        print("Accelerometer offsets initialized")
+        self.acc_offsets = np.array([AcX_mean, AcY_mean, AcZ_mean + 1])
+        print("Accelerometer offsets updated")
+        print()
 
-    def get_updated_accelerometer_data(self, pi):
+    def update_accelerometer_data(self, pi):
         AcX = (pi.i2c_read_byte_data(self.mpu6050_handle, 0x3B) << 8) + pi.i2c_read_byte_data(self.mpu6050_handle, 0x3C)
         AcY = (pi.i2c_read_byte_data(self.mpu6050_handle, 0x3D) << 8) + pi.i2c_read_byte_data(self.mpu6050_handle, 0x3E)
         AcZ = (pi.i2c_read_byte_data(self.mpu6050_handle, 0x3F) << 8) + pi.i2c_read_byte_data(self.mpu6050_handle, 0x40)
@@ -102,7 +116,7 @@ class IMU(object):
 
         return np.array([AcX, AcY, AcZ])
 
-    def set_gyro_offsets(self, pi):
+    def update_gyroscope_offsets(self, pi):
         sum_gy_x = 0
         sum_gy_y = 0
         sum_gy_z = 0
@@ -132,10 +146,11 @@ class IMU(object):
         GyY_mean = GyY_mean / 65.5
         GyZ_mean = GyZ_mean / 65.5
 
-        self.set_gyro_offsets(np.array([GyX_mean, GyY_mean, GyZ_mean]))
-        print("Gyroscope offsets initialized")
+        self.gyro_offsets = np.array([GyX_mean, GyY_mean, GyZ_mean])
+        print("Gyroscope offsets updated")
+        print()
 
-    def get_updated_gyroscope_data(self, pi):
+    def update_gyroscope_data(self, pi):
         GyX = (pi.i2c_read_byte_data(self.mpu6050_handle, 0x43) << 8) + pi.i2c_read_byte_data(self.mpu6050_handle, 0x44)
         GyY = (pi.i2c_read_byte_data(self.mpu6050_handle, 0x45) << 8) + pi.i2c_read_byte_data(self.mpu6050_handle, 0x46)
         GyZ = (pi.i2c_read_byte_data(self.mpu6050_handle, 0x47) << 8) + pi.i2c_read_byte_data(self.mpu6050_handle, 0x48)
@@ -170,10 +185,10 @@ class IMU(object):
         pi.i2c_write_byte_data(mpu6050_handler, 0x38, 1)
 
         # Set G Scale
-        # Acc_Config = pi.i2c_read_byte_data(mpu6050_handle,0x1C)
+        # Acc_Config = pi.i2c_read_byte_data(mpu6050_handler,0x1C)
         # Acc_Config_4G = (Acc_Config | 1<<3) & (~1<<4)
 
-        self.set_mpu6050_handle(mpu6050_handler)
+        self.mpu6050_handle = mpu6050_handler
         print("IMU setup complete")
 
     def calculate_angles(self, pi, sys_time):
@@ -191,5 +206,4 @@ class IMU(object):
         if dt < 0:
             dt = 0
 
-        new_angles = self.alpha * (self.imu.euler_state + dt * gyro_pr) + (1 - self.alpha) * acc_angles
-        return new_angles
+        self.euler_state = (self.alpha * (self.euler_state + dt * gyro_pr) + (1 - self.alpha) * acc_angles)
