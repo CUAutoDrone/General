@@ -3,9 +3,9 @@ import numpy as np
 
 # a class representing the IMU
 class IMU(object):
-    def __init__(self, MPU6050_ADDR, alpha):
-        self.MPU6050_ADDR = MPU6050_ADDR
-        self.alpha = alpha
+    def __init__(self, the_MPU6050_ADDR, the_alpha):
+        self.MPU6050_ADDR = the_MPU6050_ADDR
+        self.alpha = the_alpha
         self.euler_state = np.array([0, 0])
         self.accel_data = np.array([0, 0])
         self.gyro_data = np.array([0, 0])
@@ -16,52 +16,52 @@ class IMU(object):
     # getter for euler state
     @property
     def euler_state(self):
-        return self.euler_state
+        return self._euler_state
 
     # setter for euler state
     @euler_state.setter
     def euler_state(self, euler_state):
-        self.euler_state = euler_state
+        self._euler_state = euler_state
 
     # getter for acceleration data
     @property
     def accel_data(self):
-        return self.accel_data
+        return self._accel_data
 
     # setter for acceleration data
     @accel_data.setter
     def accel_data(self, accel_data):
-        self.accel_data = accel_data
+        self._accel_data = accel_data
 
     # getter for gyroscopic data
     @property
     def gyro_data(self):
-        return self.gyro_data
+        return self._gyro_data
 
     # setter for gyroscopic data
     @gyro_data.setter
     def gyro_data(self, gyro_data):
-        self.gyro_data = gyro_data
+        self._gyro_data = gyro_data
 
     # getter for mpu6050_handle data
     @property
     def mpu6050_handle(self):
-        return self.mpu6050_handle
+        return self._mpu6050_handle
 
     # setter for mpu6050_handle data
     @mpu6050_handle.setter
     def mpu6050_handle(self, mpu6050_handle):
-        self.mpu6050_handle = mpu6050_handle
+        self._mpu6050_handle = mpu6050_handle
 
     # getter for alpha
     @property
     def alpha(self):
-        return self.alpha
+        return self._alpha
 
     # setter for alpha
     @alpha.setter
     def alpha(self, alpha):
-        self.alpha = alpha
+        self._alpha = alpha
 
     def update_accelerometer_offsets(self, pi):
         sum_acc_x = 0
@@ -207,3 +207,4 @@ class IMU(object):
             dt = 0
 
         self.euler_state = (self.alpha * (self.euler_state + dt * gyro_pr) + (1 - self.alpha) * acc_angles)
+
