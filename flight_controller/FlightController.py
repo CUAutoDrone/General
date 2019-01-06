@@ -23,77 +23,92 @@ class FlightController(object):
         # used for PID updates
         self.error_sum = 0
         self.sys_time = 0
-        self.prev_error = 0  # TODO: verify
+        self.prev_error = 0
 
     # getter for armed status
     @property
     def armed(self):
-        return self._armed
+        return self.armed
 
     # setter for armed status
     @armed.setter
     def armed(self, armed):
-        self._armed = armed
+        self.armed = armed
 
     # getter for proportional gain
     @property
     def Kp(self):
-        return self._Kp
+        return self.Kp
 
     # setter for proportional gain
     @Kp.setter
     def Kp(self, Kp):
-        self._Kp = Kp
+        self.Kp = Kp
 
     # getter for integral gain
     @property
     def Ki(self):
-        return self._Ki
+        return self.Ki
 
     # setter for integral gain
     @Ki.setter
     def Ki(self, Ki):
-        self._Ki = Ki
+        self.Ki = Ki
 
     # getter for derivative gain
     @property
     def Kd(self):
-        return self._Kd
+        return self.Kd
 
     # setter for derivative gain
     @Kd.setter
     def Kd(self, Kd):
-        self._Kd = Kd
+        self.Kd = Kd
 
     # getter for receiver
     @property
     def receiver(self):
-        return self._receiver
+        return self.receiver
 
     # setter for receiver
     @receiver.setter
     def receiver(self, receiver):
-        self._receiver = receiver
+        self.receiver = receiver
 
     # getter for motor
     @property
     def motor(self):
-        return self._motor
+        return self.motor
 
     # setter for motor
     @motor.setter
     def motor(self, motor):
-        self._motor = motor
+        self.motor = motor
 
     # getter for imu
     @property
     def imu(self):
-        return self._imu
+        return self.imu
 
     # setter for imu
     @imu.setter
     def imu(self, imu):
-        self._imu = imu
+        self.imu = imu
+
+    # TODO: pre-flight check list
+    # goes through list of Pre-Flight Checks
+    def pre_flight_checks(self):
+        passed = False
+        # ensures throttle is at zero
+        if self.receiver.throttle_safe():
+            passed = True
+
+        return passed
+
+    # TODO: kill switch. May want separate methods for immediate and safe landing
+    # kill switch for the vehicle
+    def kill_switch(self):
+        self.receiver.ARM = False
 
     # Updates current PID
     def update_PID(self, pi):
@@ -107,13 +122,16 @@ class FlightController(object):
         self.sys_time = sys_time_new
 
         # Maps control input into angles
-        control_angles = Receiver.map_control_input()
+        control_angles = self.receiver.map_control_input()
 
-        # Get accelerometer and gyroscope data and compute angles
-        self.imu.set_accel_data(self.imu.get_updated_accelerometer_data(pi) - self.imu.acc_offsets)
-        self.imu.set_gyro_data(self.imu.get_updated_gyroscope_data(pi) - self.imu.gyro_offsets)
-        # TODO: see IMU calculate_angles method; possible bug
-        self.imu.set_euler_state(self.imu.calculate_angles(pi, dt))
+        # Get accelerometer and gyroscope data
+        self.imu.accel_data = self.imu.update_accelerometer_data(pi) - self.imu.acc_offsets
+        self.imu.gyro_data = self.imu.update_gyroscope_data(pi) - self.imu.gyro_offsets
+
+        # Calculate Euler angles
+        # TODO: see IMU calculate_angles method; possible bug with dt
+        # TODO: fix: replace dt with self.sys_time
+        self.imu.calculate_angles(pi, dt)
 
         # Compute errors in pitch and roll and yaw rate
         error = np.array([0 - self.imu.euler_state[0],
@@ -137,17 +155,16 @@ class FlightController(object):
 
         # Map controls into vector
         ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
-
+        
         wm = Motor.map_motor_output(ctrl)
-
         print(wm)
+
         Motor.set_motor_pulse(pi, self.motor.MOTOR1, wm[0])
         Motor.set_motor_pulse(pi, self.motor.MOTOR2, wm[1])
         Motor.set_motor_pulse(pi, self.motor.MOTOR3, wm[2])
         Motor.set_motor_pulse(pi, self.motor.MOTOR4, wm[3])
 
-    # run flight loop
-    # TODO: break run() into smaller components
+    # run the flight controller
     def run(self):
         pi = pigpio.pi()
         print(pi.connected)
@@ -161,10 +178,10 @@ class FlightController(object):
         print("Receiver input pins set")
 
         # initialize callbacks
-        cb1 = pi.callback(self.receiver.RECEIVER_CH1, pigpio.EITHER_EDGE, Receiver.cbf1)
-        cb2 = pi.callback(self.receiver.RECEIVER_CH2, pigpio.EITHER_EDGE, Receiver.cbf2)
-        cb3 = pi.callback(self.receiver.RECEIVER_CH3, pigpio.EITHER_EDGE, Receiver.cbf3)
-        cb4 = pi.callback(self.receiver.RECEIVER_CH4, pigpio.EITHER_EDGE, Receiver.cbf4)
+        cb1 = pi.callback(self.receiver.RECEIVER_CH1, pigpio.EITHER_EDGE, self.receiver.cbf1)
+        cb2 = pi.callback(self.receiver.RECEIVER_CH2, pigpio.EITHER_EDGE, self.receiver.cbf2)
+        cb3 = pi.callback(self.receiver.RECEIVER_CH3, pigpio.EITHER_EDGE, self.receiver.cbf3)
+        cb4 = pi.callback(self.receiver.RECEIVER_CH4, pigpio.EITHER_EDGE, self.receiver.cbf4)
         cb5 = pi.callback(self.receiver.RECEIVER_CH5, pigpio.EITHER_EDGE, self.receiver.cbf5)
         print("Callbacks initialized")
 
@@ -187,29 +204,29 @@ class FlightController(object):
         self.imu.setupMPU6050(pi)
 
         # determine acceleration and gyroscopic offsets
-        self.imu.set_acc_offsets(pi)
-        self.imu.set_gyro_offsets(pi)
+        self.imu.update_accelerometer_offsets(pi)
+        self.imu.update_gyroscope_offsets(pi)
 
         # machine loop
         while True:
-            # Motor.set_motor_pulse(pi, self.motor.MOTOR1, 1)
-            # Motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
-            # Motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
-            # Motor.set_motor_pulse(pi, self.motor.MOTOR4, 1)
-            # TODO: is this redundant? Does the same thing as self.motor.arm(pi)
+            # TODO: Necessary? Does the same thing as self.motor.arm(pi)
+            # send zero signal to motors
+            # self.motor.set_motor_pulse(pi, self.motor.MOTOR1, 1)
+            # self.motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
+            # self.motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
+            # self.motor.set_motor_pulse(pi, self.motor.MOTOR4, 1)
 
             while self.armed is False:
                 if self.receiver.ARM is True:
                     # perform pre-flight checks
-                    if Receiver.can_arm():
+                    if self.pre_flight_checks():
                         self.motor.arm(pi)
                         self.armed = True
-                        print("Vehicle is armed")
 
             # obtains current system time for PID control
             self.sys_time = pi.get_current_tick()
 
             # flight loop
-            while self.receiver.ARM is True:
+            while self.receiver.ARM is True and self.armed is True:
                 # PID loop
                 self.update_PID(pi)
