@@ -12,7 +12,7 @@ class Quaternion(object):
 
     # returns the norm of the quaternion
     def norm(self):
-        return np.sqrt(self.a * self.a + self.b * self.b + self.c* self.c + self.d * self.d)
+        return np.sqrt(self.a * self.a + self.b * self.b + self.c * self.c + self.d * self.d)
 
     # returns the conjugate of the quaternion
     def conjugate(self):
@@ -59,28 +59,46 @@ class Quaternion(object):
         arr = np.array([self.a, self.b, self.c, self.d])
         return arr
 
+    # convert from euler state to quaternion
+    # TODO: more thorough testing
+    @staticmethod
+    def euler_angle_to_quaternion(angle_x, angle_y, angle_z):
+        heading = (angle_y / 180) * math.pi
+        attitude = (angle_z / 180) * math.pi
+        bank = (angle_x / 180) * math.pi
 
-# convert from euler state to quaternion
-# NOTE: only tested for basic cases
-def euler_to_quaternion(angle_x, angle_y, angle_z):
-    heading = (angle_y / 180) * math.pi
-    attitude = (angle_z / 180) * math.pi
-    bank = (angle_x / 180) * math.pi
+        c1 = math.cos(heading / 2)
+        c2 = math.cos(attitude / 2)
+        c3 = math.cos(bank / 2)
 
-    c1 = math.cos(heading / 2)
-    c2 = math.cos(attitude / 2)
-    c3 = math.cos(bank / 2)
+        s1 = math.sin(heading / 2)
+        s2 = math.sin(attitude / 2)
+        s3 = math.sin(bank / 2)
 
-    s1 = math.sin(heading / 2)
-    s2 = math.sin(attitude / 2)
-    s3 = math.sin(bank / 2)
+        a = (c1 * c2 * c3) - (s1 * s2 * s3)
+        b = (s1 * s2 * c3) + (c1 * c2 * s3)
+        c = (s1 * c2 * c3) + (c1 * s2 * s3)
+        d = (c1 * s2 * c3) - (s1 * c2 * s3)
 
-    a = (c1 * c2 * c3) - (s1 * s2 * s3)
-    b = (s1 * s2 * c3) + (c1 * c2 * s3)
-    c = (s1 * c2 * c3) + (c1 * s2 * s3)
-    d = (c1 * s2 * c3) - (s1 * c2 * s3)
+        return Quaternion(a, b, c, d)
 
-    return Quaternion(a, b, c, d)
+    # convert from quaternion to euler angle
+    #TODO: Taken from General/BNO055Test.py, have NOT tested
+    @staticmethod
+    def quaternion_to_euler_angle(a, b, c, d):
+        t0 = +2.0 * (a * b + c * d)
+        t1 = +1.0 - 2.0 * (b * b + c * c)
+        X = math.degrees(math.atan2(t0, t1))
+
+        t2 = +2.0 * (a * c - d * b)
+        t2 = +1.0 if t2 > +1.0 else t2
+        t2 = -1.0 if t2 < -1.0 else t2
+        Y = math.degrees(math.asin(t2))
+
+        t3 = +2.0 * (a * d + b * c)
+        t4 = +1.0 - 2.0 * (c * c + d * d)
+        Z = math.degrees(math.atan2(t3, t4))
+
+        return X, Y, Z
 
 
-# TODO: convert from quaternion to euler state
