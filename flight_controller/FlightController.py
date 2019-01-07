@@ -20,11 +20,6 @@ class FlightController(object):
         self.motor = the_motor
         self.armed = False
 
-        # used for PID updates
-        self.error_sum = 0
-        self.sys_time = 0
-        self.prev_error = 0
-
     # getter for armed status
     @property
     def armed(self):
@@ -114,12 +109,12 @@ class FlightController(object):
     def update_PID(self, pi):
         # get delta time
         sys_time_new = pi.get_current_tick()
-        dt = (sys_time_new - self.sys_time) / 1e6
+        dt = (sys_time_new - self.imu.sys_time) / 1e6
 
         # correct for rollover
         if dt < 0:
             dt = 0
-        self.sys_time = sys_time_new
+        self.imu.sys_time = sys_time_new
 
         # Maps control input into angles
         control_angles = self.receiver.map_control_input()
@@ -139,19 +134,19 @@ class FlightController(object):
                           0])
 
         # compute error integral
-        self.error_sum = self.error_sum + error
+        self.imu.error_sum = self.imu.error_sum + error
 
         # computer delta error
-        delta_error = error - self.prev_error
+        delta_error = error - self.imu.prev_error
 
         # PID law
         if dt > 0:
-            u = np.multiply(self.Kp, error) + np.multiply(self.Ki, dt * self.error_sum) + \
+            u = np.multiply(self.Kp, error) + np.multiply(self.Ki, dt * self.imu.error_sum) + \
                 np.multiply(self.Kd, delta_error / dt)
         else:
-            u = np.multiply(self.Kp, error) + np.multiply(self.Ki, dt * self.error_sum)
+            u = np.multiply(self.Kp, error) + np.multiply(self.Ki, dt * self.imu.error_sum)
 
-        self.prev_error = error
+        self.imu.prev_error = error
 
         # Map controls into vector
         ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
@@ -224,7 +219,7 @@ class FlightController(object):
                         self.armed = True
 
             # obtains current system time for PID control
-            self.sys_time = pi.get_current_tick()
+            self.imu.sys_time = pi.get_current_tick()
 
             # flight loop
             while self.receiver.ARM is True and self.armed is True:
