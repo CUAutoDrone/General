@@ -198,15 +198,17 @@ class IMU(object):
 
     def calculate_angles(self, pi, sys_time):
         # Estimate angle from accelerometer
-        pitch_acc = np.arctan2(self.accel_data[0], np.sqrt(np.power(self.accel_data[1], 2) + np.power(self.accel_data[2], 2))) * -1
-        roll_acc = np.arctan2(self.accel_data[1], np.sqrt(np.power(self.accel_data[0], 2) + np.power(self.accel_data[2], 2)))
+        pitch_acc = np.arctan2(self.accel_data[0], np.sqrt(self.accel_data[1] * self.accel_data[1] + self.accel_data[2]
+                                                           * self.accel_data[2])) * -1
+        roll_acc = np.arctan2(self.accel_data[1], np.sqrt(self.accel_data[0] * self.accel_data[0] + self.accel_data[2]
+                                                          * self.accel_data[2]))
 
         # Complementary Filter
         acc_angles = np.array([roll_acc * 180 / np.pi, pitch_acc * 180 / np.pi])
         gyro_pr = np.array([self.gyro_data[0], self.gyro_data[1]])
 
         # TODO:    This currently has pi.get_current_tick() - the previous calculated dt in FlightController.py's
-        # TODO:    update_PID() method. Is this what we want?
+        # TODO:    update_PID() method. I believe the correct method parameter input would be self.sys_time
         dt = (pi.get_current_tick() - sys_time) / 1e6
         if dt < 0:
             dt = 0
