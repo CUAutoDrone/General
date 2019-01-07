@@ -13,6 +13,11 @@ class IMU(object):
         self.gyro_offsets = None
         self.mpu6050_handle = None
 
+        # used for PID updates
+        self.error_sum = 0
+        self.sys_time = 0
+        self.prev_error = 0
+
     # getter for euler state
     @property
     def euler_state(self):
@@ -207,4 +212,5 @@ class IMU(object):
             dt = 0
 
         self.euler_state = (self.alpha * (self.euler_state + dt * gyro_pr) + (1 - self.alpha) * acc_angles)
+
 
