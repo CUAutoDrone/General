@@ -6,17 +6,30 @@ class IMU(object):
     def __init__(self, the_MPU6050_ADDR, the_alpha):
         self.MPU6050_ADDR = the_MPU6050_ADDR
         self.alpha = the_alpha
-        self.euler_state = np.array([0, 0])
-        self.accel_data = np.array([0, 0])
-        self.gyro_data = np.array([0, 0])
+        self.euler_state = np.array([0.0, 0.0])
+        self.accel_data = np.array([0.0, 0.0, 0.0])
+        self.gyro_data = np.array([0.0, 0.0, 0.0])
         self.acc_offsets = None
         self.gyro_offsets = None
         self.mpu6050_handle = None
 
-        # used for PID updates
-        self.error_sum = 0
-        self.sys_time = 0
-        self.prev_error = 0
+        # I term
+        self.I_term = np.array([0.0,0.0,0.0])
+
+        # TODO: request actual maximum output of PWM measurements
+        # the maximum output
+        self.output_max = 255.0
+
+        # the minimum input
+        self.output_min = 0.0
+
+        # time in between PID update intervals
+        self.sample_time = 1.0
+        # time it takes to complete one PID loop
+        self.actual_time_length_of_PID_loop = 0.0
+
+        # the previous derivative input
+        self.prev_d_input = np.array([0.0, 0.0, 0.0])
 
     # getter for euler state
     @property
@@ -196,7 +209,12 @@ class IMU(object):
         self.mpu6050_handle = mpu6050_handler
         print("IMU setup complete")
 
-    def calculate_angles(self, pi, sys_time):
+    def calculate_angles(self, pi):
+
+        # Get accelerometer and gyroscope data
+        self.accel_data = self.update_accelerometer_data(pi) - self.acc_offsets
+        self.gyro_data = self.update_gyroscope_data(pi) - self.gyro_offsets
+
         # Estimate angle from accelerometer
         pitch_acc = np.arctan2(self.accel_data[0], np.sqrt(self.accel_data[1] * self.accel_data[1] + self.accel_data[2]
                                                            * self.accel_data[2])) * -1
@@ -207,12 +225,33 @@ class IMU(object):
         acc_angles = np.array([roll_acc * 180 / np.pi, pitch_acc * 180 / np.pi])
         gyro_pr = np.array([self.gyro_data[0], self.gyro_data[1]])
 
-        # TODO:    This currently has pi.get_current_tick() - the previous calculated dt in FlightController.py's
-        # TODO:    update_PID() method. I believe the correct method parameter input would be self.sys_time
-        dt = (pi.get_current_tick() - sys_time) / 1e6
-        if dt < 0:
-            dt = 0
+        if self.sample_time < 0:
+            self.sample_time = 0
 
-        self.euler_state = (self.alpha * (self.euler_state + dt * gyro_pr) + (1 - self.alpha) * acc_angles)
+        self.euler_state = (self.alpha * (self.euler_state + self.sample_time * gyro_pr) + (1 - self.alpha) * acc_angles)
 
+    # checks the limitations on each variable to avoid reset windup
+    def check_output_limitations(self, a, b, c):
 
+        if a > self.output_max:
+            self.I_term[0] -= a - self.output_max
+            a = self.output_max
+        elif a < self.output_min:
+            self.I_term[0] += self.output_min - a
+            a = self.output_min
+
+        if b > self.output_max:
+            self.I_term[1] -= b - self.output_max
+            b = self.output_max
+        elif b < self.output_min:
+            self.I_term[1] += self.output_min - b
+            b = self.output_min
+
+        if c > self.output_max:
+            self.I_term[2] -= c - self.output_max
+            c = self.output_max
+        elif c < self.output_min:
+            self.I_term[2] += self.output_min - c
+            c = self.output_min
+
+        return np.array([a,b,c])
