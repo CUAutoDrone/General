@@ -111,7 +111,7 @@ While not detailed too carefully, there are still a couple minor bugs involved w
 
 Here is the loop where the PID loop occurs:
 ```
-# obtains current system time for PID control
+            # obtains current system time for PID control
             self.imu.sys_time = pi.get_current_tick()
 
             # flight loop
