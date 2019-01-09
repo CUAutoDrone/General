@@ -1,6 +1,7 @@
 import pigpio
 import numpy as np
 from flight_controller import *
+import threading
 import time
 
 
@@ -19,6 +20,7 @@ class FlightController(object):
         self.imu = the_imu
         self.motor = the_motor
         self.armed = False
+        self.pi = None
 
     # getter for armed status
     @property
@@ -106,122 +108,118 @@ class FlightController(object):
         self.receiver.ARM = False
 
     # Updates current PID
-    def update_PID(self, pi):
-        # get delta time
-        sys_time_new = pi.get_current_tick()
-        dt = (sys_time_new - self.imu.sys_time) / 1e6
+    def compute_PID(self):
 
-        # correct for rollover
-        if dt < 0:
-            dt = 0
-        self.imu.sys_time = sys_time_new
+        # begin the thread
+        threading.Timer(self.imu.sample_time, self.compute_PID).start()
+
+        # used to determine how long one iteration of the method takes
+        start_time = self.pi.get_current_tick()
 
         # Maps control input into angles
         control_angles = self.receiver.map_control_input()
 
-        # Get accelerometer and gyroscope data
-        self.imu.accel_data = self.imu.update_accelerometer_data(pi) - self.imu.acc_offsets
-        self.imu.gyro_data = self.imu.update_gyroscope_data(pi) - self.imu.gyro_offsets
-
         # Calculate Euler angles
-        # TODO: see IMU calculate_angles method; possible bug with dt
-        # TODO: fix: replace dt with self.sys_time
-        self.imu.calculate_angles(pi, dt)
+        self.imu.calculate_angles(self.pi)
 
         # Compute errors in pitch and roll and yaw rate
+        # error = setpoint - input
         error = np.array([0 - self.imu.euler_state[0],
                           0 - self.imu.euler_state[1],
                           0])
 
-        # compute error integral
-        self.imu.error_sum = self.imu.error_sum + error
+        # I_term replaces the error sum since it allows for smoother live PID tunings
+        self.imu.I_term += np.multiply(self.Ki, error)
 
-        # computer delta error
-        delta_error = error - self.imu.prev_error
+        # compute d input
+        # d_input = input - last input
+        d_input = np.array([self.imu.euler_state[0]-self.imu.prev_d_input[0],
+                            self.imu.euler_state[1]-self.imu.prev_d_input[1], 0])
 
-        # PID law
-        if dt > 0:
-            u = np.multiply(self.Kp, error) + np.multiply(self.Ki, dt * self.imu.error_sum) + \
-                np.multiply(self.Kd, delta_error / dt)
-        else:
-            u = np.multiply(self.Kp, error) + np.multiply(self.Ki, dt * self.imu.error_sum)
+        # PID Law
+        output = np.multiply(self.Kp, error) + self.imu.I_term - \
+                 np.multiply(self.Kd, self.imu.prev_d_input / self.imu.sample_time)
 
-        self.imu.prev_error = error
+        # ensures that the output also falls within output limitations,
+        # as well as clamps the I_term after the output has been computed
+        output = self.imu.check_output_limitations(output[0], output[1], output[2])
+
+        self.imu.prev_d_input = d_input
 
         # Map controls into vector
-        ctrl = np.array([control_angles[3], u[0], u[1], u[2]])
+        ctrl = np.array([control_angles[3], output[0], output[1], output[2]])
 
         wm = Motor.map_motor_output(ctrl)
         print(wm)
 
-        Motor.set_motor_pulse(pi, self.motor.MOTOR1, wm[0])
-        Motor.set_motor_pulse(pi, self.motor.MOTOR2, wm[1])
-        Motor.set_motor_pulse(pi, self.motor.MOTOR3, wm[2])
-        Motor.set_motor_pulse(pi, self.motor.MOTOR4, wm[3])
+        Motor.set_motor_pulse(self.pi, self.motor.MOTOR1, wm[0])
+        Motor.set_motor_pulse(self.pi, self.motor.MOTOR2, wm[1])
+        Motor.set_motor_pulse(self.pi, self.motor.MOTOR3, wm[2])
+        Motor.set_motor_pulse(self.pi, self.motor.MOTOR4, wm[3])
+
+        # time of end of the method
+        end_time = self.pi.get_current_tick()
+        self.imu.actual_time_length_of_PID_loop = (start_time - end_time) / 1e6
 
     # run the flight controller
     def run(self):
-        pi = pigpio.pi()
-        print(pi.connected)
+        self.pi = pigpio.pi()
+        print(self.pi.connected)
 
         # set receiver input pins
-        pi.set_mode(self.receiver.RECEIVER_CH1, pigpio.INPUT)
-        pi.set_mode(self.receiver.RECEIVER_CH2, pigpio.INPUT)
-        pi.set_mode(self.receiver.RECEIVER_CH3, pigpio.INPUT)
-        pi.set_mode(self.receiver.RECEIVER_CH4, pigpio.INPUT)
-        pi.set_mode(self.receiver.RECEIVER_CH5, pigpio.INPUT)
+        self.pi.set_mode(self.receiver.RECEIVER_CH1, pigpio.INPUT)
+        self.pi.set_mode(self.receiver.RECEIVER_CH2, pigpio.INPUT)
+        self.pi.set_mode(self.receiver.RECEIVER_CH3, pigpio.INPUT)
+        self.pi.set_mode(self.receiver.RECEIVER_CH4, pigpio.INPUT)
+        self.pi.set_mode(self.receiver.RECEIVER_CH5, pigpio.INPUT)
         print("Receiver input pins set")
 
         # initialize callbacks
-        cb1 = pi.callback(self.receiver.RECEIVER_CH1, pigpio.EITHER_EDGE, self.receiver.cbf1)
-        cb2 = pi.callback(self.receiver.RECEIVER_CH2, pigpio.EITHER_EDGE, self.receiver.cbf2)
-        cb3 = pi.callback(self.receiver.RECEIVER_CH3, pigpio.EITHER_EDGE, self.receiver.cbf3)
-        cb4 = pi.callback(self.receiver.RECEIVER_CH4, pigpio.EITHER_EDGE, self.receiver.cbf4)
-        cb5 = pi.callback(self.receiver.RECEIVER_CH5, pigpio.EITHER_EDGE, self.receiver.cbf5)
+        cb1 = self.pi.callback(self.receiver.RECEIVER_CH1, pigpio.EITHER_EDGE, self.receiver.cbf1)
+        cb2 = self.pi.callback(self.receiver.RECEIVER_CH2, pigpio.EITHER_EDGE, self.receiver.cbf2)
+        cb3 = self.pi.callback(self.receiver.RECEIVER_CH3, pigpio.EITHER_EDGE, self.receiver.cbf3)
+        cb4 = self.pi.callback(self.receiver.RECEIVER_CH4, pigpio.EITHER_EDGE, self.receiver.cbf4)
+        cb5 = self.pi.callback(self.receiver.RECEIVER_CH5, pigpio.EITHER_EDGE, self.receiver.cbf5)
         print("Callbacks initialized")
 
         # set motor output pins
-        pi.set_mode(self.motor.MOTOR1, pigpio.OUTPUT)
-        pi.set_mode(self.motor.MOTOR2, pigpio.OUTPUT)
-        pi.set_mode(self.motor.MOTOR3, pigpio.OUTPUT)
-        pi.set_mode(self.motor.MOTOR4, pigpio.OUTPUT)
-        pi.set_mode(self.motor.MOTOR4, pigpio.OUTPUT)
+        self.pi.set_mode(self.motor.MOTOR1, pigpio.OUTPUT)
+        self.pi.set_mode(self.motor.MOTOR2, pigpio.OUTPUT)
+        self.pi.set_mode(self.motor.MOTOR3, pigpio.OUTPUT)
+        self.pi.set_mode(self.motor.MOTOR4, pigpio.OUTPUT)
+        self.pi.set_mode(self.motor.MOTOR4, pigpio.OUTPUT)
         print("Motor output pins set")
 
         # set PWM frequencies
-        pi.set_PWM_frequency(self.motor.MOTOR1, 400)
-        pi.set_PWM_frequency(self.motor.MOTOR2, 400)
-        pi.set_PWM_frequency(self.motor.MOTOR3, 400)
-        pi.set_PWM_frequency(self.motor.MOTOR4, 400)
+        self.pi.set_PWM_frequency(self.motor.MOTOR1, 400)
+        self.pi.set_PWM_frequency(self.motor.MOTOR2, 400)
+        self.pi.set_PWM_frequency(self.motor.MOTOR3, 400)
+        self.pi.set_PWM_frequency(self.motor.MOTOR4, 400)
         print("PWM frequency set")
 
         # setup IMU
-        self.imu.setupMPU6050(pi)
+        self.imu.setupMPU6050(self.pi)
 
         # determine acceleration and gyroscopic offsets
-        self.imu.update_accelerometer_offsets(pi)
-        self.imu.update_gyroscope_offsets(pi)
+        self.imu.update_accelerometer_offsets(self.pi)
+        self.imu.update_gyroscope_offsets(self.pi)
 
         # machine loop
         while True:
             # TODO: Necessary? Does the same thing as self.motor.arm(pi)
             # send zero signal to motors
-            # Motor.set_motor_pulse(pi, self.motor.MOTOR1, 1)
-            # Motor.motor.set_motor_pulse(pi, self.motor.MOTOR2, 1)
-            # Motor.motor.set_motor_pulse(pi, self.motor.MOTOR3, 1)
-            # Motor.motor.set_motor_pulse(pi, self.motor.MOTOR4, 1)
+            # Motor.set_motor_pulse(self.pi, self.motor.MOTOR1, 1)
+            # Motor.motor.set_motor_pulse(self.pi, self.motor.MOTOR2, 1)
+            # Motor.motor.set_motor_pulse(self.pi, self.motor.MOTOR3, 1)
+            # Motor.motor.set_motor_pulse(self.pi, self.motor.MOTOR4, 1)
 
             while self.armed is False:
                 if self.receiver.ARM is True:
                     # perform pre-flight checks
                     if self.pre_flight_checks():
-                        self.motor.arm(pi)
+                        self.motor.arm(self.pi)
                         self.armed = True
-
-            # obtains current system time for PID control
-            self.imu.sys_time = pi.get_current_tick()
 
             # flight loop
             while self.receiver.ARM is True and self.armed is True:
-                # PID loop
-                self.update_PID(pi)
+                self.compute_PID()
