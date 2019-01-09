@@ -1,7 +1,7 @@
 # Optimizing the PID Control Loop for Quadcopters in Python
 * *Chris Gyurgyik, Cornell University Aerial Robotics*
 
-___Please note: I have not tested any of this, simply because I don't have access to sensors, or drones. I can tell you that the output does spit out numbers, and the module compiles. So that's a start___
+___Please note: I have not tested any of this, simply because I don't have access to sensors, or drones. I can tell you that the output does spit out numbers, and the module compiles. So that's a start.___
 
 Detailed below is my informal approach as to how I could help achieve a more fluid PID control loop designed in Python. I will be documenting this continuously as I get more research done. Presented below is the set of code before I touched it:
 
