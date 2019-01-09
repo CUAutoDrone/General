@@ -4,12 +4,15 @@ from collections import deque
 from multiprocessing import Queue
 import numpy as np
 import pyqtgraph as pg
-import os
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from flight_controller import *
+
+
+import threading
+import random
 
 # length of GUI
 l = 960
@@ -84,7 +87,7 @@ class DroneGUI(QDialog):
         if event.type() == QEvent.KeyPress:
             if event.key() == Qt.Key_Space:
                 if self.arm_button.isChecked():
-                    print("KILLSWITCH ACTIVATED")
+                    print("KILL SWITCH ACTIVATED")
                     self.arm_button.toggle()
                     self.arm_button.setEnabled(False)
                     self.undo_killswitch_button.setEnabled(True)
@@ -187,11 +190,11 @@ class DroneGUI(QDialog):
         self.arm_button.setShortcut("A")
 
         # button to kill the drone
-        self.killswitch_button = QPushButton('KILLSWITCH', self)
+        self.killswitch_button = QPushButton('KILL SWITCH', self)
         self.killswitch_button.move(l-110, 0)
         self.killswitch_button.setDefault(False)
         self.killswitch_button.setAutoDefault(False)
-        self.killswitch_button.setFont(QFont("Helvetica", 17.5))
+        self.killswitch_button.setFont(QFont("Helvetica", 17.0))
         self.killswitch_button.resize(110, 60)
         self.killswitch_button.clicked.connect(self.kill_motor)
         self.killswitch_button.setStyleSheet("background-color: red")
@@ -219,7 +222,7 @@ class DroneGUI(QDialog):
     # killswitch for the drone
     def kill_motor(self):
         if self.arm_button.isChecked():
-            print("KILLSWITCH ACTIVATED")
+            print("KILL SWITCH ACTIVATED")
             self.arm_button.toggle()
             self.arm_button.setEnabled(False)
             self.undo_killswitch_button.setEnabled(True)
@@ -486,7 +489,7 @@ class DroneGUI(QDialog):
         self.key_a_shortcut.setText("Press: 'a' to arm,")
         self.key_spacebar_shortcut = QLabel(self)
         self.key_spacebar_shortcut.move(l-158, 116)
-        self.key_spacebar_shortcut.setText("          'space bar' to killswitch")
+        self.key_spacebar_shortcut.setText("         'space bar' to kill switch")
 
     def onUpdateText(self, text):
         cursor = self.log.textCursor()
@@ -576,7 +579,7 @@ class DroneGUI(QDialog):
     def create_plot(self):
         self.pw = pg.PlotWidget(self.data_tab)
         self.pw.showGrid(x=True,y=True)
-        self.pw.setTitle('Demo uses sin function and Kp[0] values')
+        self.pw.setTitle('Demo uses sin function and cos function values')
         self.pw.move(0,20)
         self.pw.resize(l/2,w/2)
         self.pw.show()
@@ -613,7 +616,7 @@ class DroneGUI(QDialog):
 
             # value(s) that we want to track
             v1 = np.sin(t)
-            v2 = fc.Kp[0]
+            v2 = np.cos(t)
 
             # put the data into queue
             self.queue.put([t,v1,v2])
@@ -668,7 +671,6 @@ class Stream(QObject):
     def flush(self):
         pass
 
-
 if __name__ == '__main__':
     import sys
 
@@ -679,4 +681,3 @@ if __name__ == '__main__':
     print("Cornell University Aerial Robotics 2019")
     print("- Press Shift + 'Q' to exit")
     sys.exit(app.exec_())
-
