@@ -174,13 +174,13 @@ class FlightController(object):
         self.pi.set_mode(self.receiver.RECEIVER_CH5, pigpio.INPUT)
         print("Receiver input pins set")
 
-        # initialize callbacks
+        # initialize receiver callbacks
         cb1 = self.pi.callback(self.receiver.RECEIVER_CH1, pigpio.EITHER_EDGE, self.receiver.cbf1)
         cb2 = self.pi.callback(self.receiver.RECEIVER_CH2, pigpio.EITHER_EDGE, self.receiver.cbf2)
         cb3 = self.pi.callback(self.receiver.RECEIVER_CH3, pigpio.EITHER_EDGE, self.receiver.cbf3)
         cb4 = self.pi.callback(self.receiver.RECEIVER_CH4, pigpio.EITHER_EDGE, self.receiver.cbf4)
         cb5 = self.pi.callback(self.receiver.RECEIVER_CH5, pigpio.EITHER_EDGE, self.receiver.cbf5)
-        print("Callbacks initialized")
+        print("Receiver callbacks initialized")
 
         # set motor output pins
         self.pi.set_mode(self.motor.MOTOR1, pigpio.OUTPUT)
@@ -191,11 +191,11 @@ class FlightController(object):
         print("Motor output pins set")
 
         # set PWM frequencies
-        self.pi.set_PWM_frequency(self.motor.MOTOR1, 400)
-        self.pi.set_PWM_frequency(self.motor.MOTOR2, 400)
-        self.pi.set_PWM_frequency(self.motor.MOTOR3, 400)
-        self.pi.set_PWM_frequency(self.motor.MOTOR4, 400)
-        print("PWM frequency set")
+        self.pi.set_PWM_frequency(self.motor.MOTOR1, self.motor.PWM_frequency)
+        self.pi.set_PWM_frequency(self.motor.MOTOR2, self.motor.PWM_frequency)
+        self.pi.set_PWM_frequency(self.motor.MOTOR3, self.motor.PWM_frequency)
+        self.pi.set_PWM_frequency(self.motor.MOTOR4, self.motor.PWM_frequency)
+        print("PWM frequency set to ", self.motor.PWM_frequency)
 
         # setup IMU
         self.imu.setupMPU6050(self.pi)
@@ -209,9 +209,9 @@ class FlightController(object):
             # TODO: Necessary? Does the same thing as self.motor.arm(pi)
             # send zero signal to motors
             # Motor.set_motor_pulse(self.pi, self.motor.MOTOR1, 1)
-            # Motor.motor.set_motor_pulse(self.pi, self.motor.MOTOR2, 1)
-            # Motor.motor.set_motor_pulse(self.pi, self.motor.MOTOR3, 1)
-            # Motor.motor.set_motor_pulse(self.pi, self.motor.MOTOR4, 1)
+            # Motor.set_motor_pulse(self.pi, self.motor.MOTOR2, 1)
+            # Motor.set_motor_pulse(self.pi, self.motor.MOTOR3, 1)
+            # Motor.set_motor_pulse(self.pi, self.motor.MOTOR4, 1)
 
             while self.armed is False:
                 if self.receiver.ARM is True:
