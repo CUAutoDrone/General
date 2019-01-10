@@ -20,12 +20,12 @@ l = 960
 # width of GUI
 w = 640
 
-# receiver created with receiver channels initialized
+# receiver created with receiver channels gpio pin numbers initialized
 receiver = Receiver(17, 27, 22, 18, 23)
-# IMU created with MPU_6050, alpha initialized
+# IMU created with MPU6050 address, alpha initialized
 imu = IMU(0x68, 0.98)
-# motors created with motors initialized
-motor = Motor(10, 9, 25, 8)
+# motors created with motor gpio pin numbers initialized
+motor = Motor(10, 9, 25, 8, 400)
 # initialize the flight controller
 fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
                       np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
