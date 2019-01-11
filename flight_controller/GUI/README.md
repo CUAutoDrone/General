@@ -4,7 +4,8 @@ A GUI designed to help with and simplify interacting with the quadcopter compone
 live feed data for debugging and performance optimization. This interface revolves around the ```flight_controller``` package.
 
 <kbd>Notes:</kbd>
-Please let me know if there is any additional features or changes you would like. Examples may include types of data you want to plot, external features, etc.
+* I have not been able to test anything yet for flight_controller since I do not have access to the correct sensors. Thus, all the actual code to execute drone commands is currently commented out. Rigorous testing will conclude when possible.
+* Please let me know if there is any additional features or changes you would like. Examples may include types of data you want to plot, external features, etc.
 
 
 # Current Features [<kbd>Version: 0.1.0</kbd>]
