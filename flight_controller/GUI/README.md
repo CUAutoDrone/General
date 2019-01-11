@@ -1,5 +1,6 @@
 # Drone Graphical User Interface
-<kbd>Purpose:</kbd>
+<kbd>Purpose: 
+</kbd>
 A GUI designed to help with and simplify interacting with the quadcopter components. It also provides
 live feed data for debugging and performance optimization. This interface revolves around the ```flight_controller``` package.
 
@@ -70,5 +71,12 @@ Then type:
 ```
 pyinstall --onefile --windowed GUI_Drone.py
 ```
+
+### Versioning
+We use [SemVer](http://semver.org/) for versioning.
+
+### Author(s)
+Chris Gyurgyik
+
 
 
