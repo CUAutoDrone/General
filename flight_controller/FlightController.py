@@ -21,6 +21,8 @@ class FlightController(object):
         self.motor = the_motor
         self.armed = False
         self.pi = None
+        self.pi_online = False
+        self.motor_output = np.array([0.0,0.0,0.0,0.0])
 
     # getter for armed status
     @property
@@ -96,9 +98,11 @@ class FlightController(object):
     # goes through list of Pre-Flight Checks
     def pre_flight_checks(self):
         passed = False
-        # ensures throttle is at zero
-        if self.receiver.throttle_safe():
-            passed = True
+        # ensure the pi is connected
+        if self.pi.connected():
+            # ensures throttle is at zero
+            if self.receiver.throttle_safe():
+                passed = True
 
         return passed
 
@@ -147,15 +151,12 @@ class FlightController(object):
         self.imu.prev_d_input = d_input
 
         # Map controls into vector
-        ctrl = np.array([control_angles[3], output[0], output[1], output[2]])
+        self.motor_output = Motor.map_motor_output(np.array([control_angles[3], output[0], output[1], output[2]]))
 
-        wm = Motor.map_motor_output(ctrl)
-        print(wm)
-
-        Motor.set_motor_pulse(self.pi, self.motor.MOTOR1, wm[0])
-        Motor.set_motor_pulse(self.pi, self.motor.MOTOR2, wm[1])
-        Motor.set_motor_pulse(self.pi, self.motor.MOTOR3, wm[2])
-        Motor.set_motor_pulse(self.pi, self.motor.MOTOR4, wm[3])
+        Motor.set_motor_pulse(self.pi, self.motor.MOTOR1, self.motor_output[0])
+        Motor.set_motor_pulse(self.pi, self.motor.MOTOR2, self.motor_output[1])
+        Motor.set_motor_pulse(self.pi, self.motor.MOTOR3, self.motor_output[2])
+        Motor.set_motor_pulse(self.pi, self.motor.MOTOR4, self.motor_output[3])
 
         # time of end of the method
         end_time = self.pi.get_current_tick()
@@ -164,7 +165,7 @@ class FlightController(object):
     # run the flight controller
     def run(self):
         self.pi = pigpio.pi()
-        print(self.pi.connected)
+        self.pi_online = self.pi.connected
 
         # set receiver input pins
         self.pi.set_mode(self.receiver.RECEIVER_CH1, pigpio.INPUT)
@@ -222,4 +223,7 @@ class FlightController(object):
 
             # flight loop
             while self.receiver.ARM is True and self.armed is True:
+                # determines connectivity status of the pi
+                self.pi_online = self.pi.connected()
+                # computes PID
                 self.compute_PID()
