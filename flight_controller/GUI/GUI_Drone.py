@@ -1,6 +1,9 @@
 import datetime
 import time
 from collections import deque
+import datetime
+import time
+from collections import deque
 from multiprocessing import Queue
 import numpy as np
 import pyqtgraph as pg
@@ -10,9 +13,11 @@ from PyQt5.QtWidgets import *
 
 from flight_controller import *
 
-
-import threading
 import random
+
+
+# version number of the GUI
+version_number = "0.1.0"
 
 # length of GUI
 l = 960
@@ -29,11 +34,17 @@ motor = Motor(10, 9, 25, 8, 400)
 # initialize the flight controller
 fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
                       np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
+#####
+# Demonstrates the plot graph
+######
+fc.motor_output[0] = random.uniform(1.3,1.5)
+fc.motor_output[1] = random.uniform(1.3,1.5)
+fc.motor_output[2] = random.uniform(1.3,1.5)
+fc.motor_output[3] = random.uniform(1.3,1.5)
 
 # TODO:
 # potential sensor/graph plot for 'wm' variable in FlightController.py
 # buttons to have drone perform certain maneuvers (need further guidance)
-# transition to layouts, get rid of absolute positioning
 
 
 class DroneGUI(QDialog):
@@ -97,6 +108,7 @@ class DroneGUI(QDialog):
                     self.killswitch_button.setStyleSheet("background-color: Darkred; color:black")
                     self.curr_status.setStyleSheet("background-color: Red")
                     self.curr_status.setText("Inactive")
+                    self.flight_timer.stop()
                     # fc.receiver.ARM = False
                     return True
                 else:
@@ -114,6 +126,7 @@ class DroneGUI(QDialog):
                     self.arm_button.setChecked(True)
                     self.curr_status.setStyleSheet("background-color: Green")
                     self.curr_status.setText("Active")
+                    self.flight_timer.start(1000)
                     # Since we're skipping the unlock arm button,
                     # fc.receiver.ARM = True
                     # fc.run()
@@ -223,6 +236,7 @@ class DroneGUI(QDialog):
     def kill_motor(self):
         if self.arm_button.isChecked():
             print("KILL SWITCH ACTIVATED")
+            self.flight_timer.stop()
             self.arm_button.toggle()
             self.arm_button.setEnabled(False)
             self.undo_killswitch_button.setEnabled(True)
@@ -248,6 +262,7 @@ class DroneGUI(QDialog):
     def arm_drone(self):
         print()
         print("Initialize Arming Process...")
+        self.flight_timer.start(1000)
         self.undo_killswitch_button.setEnabled(False)
         self.killswitch_button.setEnabled(True)
         self.undo_killswitch_button.setStyleSheet("background-color:rgb(53,53,53);")
@@ -260,11 +275,12 @@ class DroneGUI(QDialog):
     def drone_information(self):
 
         # PID
-        self.state_label = QLabel("Drone Status", self.settings_tab)
-        self.state_label.move(0, w-300)
+        self.state_label = QPushButton("Drone Status", self.settings_tab)
+        self.state_label.setCheckable(False)
+        self.state_label.setEnabled(False)
+        self.state_label.setStyleSheet("background: #333332; color: white")
+        self.state_label.move(9, w-300)
         self.state_label.show()
-        self.state_label.setFrameShape(QFrame.Panel)
-        self.state_label.setFrameShadow(QFrame.Sunken)
         self.state_label.resize(80,18)
         self.curr_status = QPushButton("Inactive", self.settings_tab)
         self.curr_status.setDefault(False)
@@ -302,60 +318,16 @@ class DroneGUI(QDialog):
         self.curr_D.move(78, w - 249)
         self.curr_D.resize(90, 12)
         self.curr_D.show()
-
-        # Motors
-        self.curr_motor = QLabel(self.settings_tab)
-        self.curr_motor.move(200, w - 275)
-        self.curr_motor.setText("Motors:")
-        self.curr_motor_1 = QLabel(self.settings_tab)
-        self.curr_motor_1.move(270, w - 275)
-        self.curr_motor_1a = QLabel("1:",self.settings_tab)
-        self.curr_motor_1a.move(250, w - 275)
-        self.curr_motor_1.setText(str(fc.motor.MOTOR1))
-        self.curr_motor_2 = QLabel(self.settings_tab)
-        self.curr_motor_2.move(270, w - 260)
-        self.curr_motor_2.setText(str(fc.motor.MOTOR2))
-        self.curr_motor_2a = QLabel("2:", self.settings_tab)
-        self.curr_motor_2a.move(250, w - 260)
-        self.curr_motor_3 = QLabel(self.settings_tab)
-        self.curr_motor_3.move(270, w - 245)
-        self.curr_motor_3.setText(str(fc.motor.MOTOR3))
-        self.curr_motor_3a = QLabel("3:", self.settings_tab)
-        self.curr_motor_3a.move(250, w - 245)
-        self.curr_motor_4 = QLabel(self.settings_tab)
-        self.curr_motor_4.move(270, w - 230)
-        self.curr_motor_4.setText(str(fc.motor.MOTOR4))
-        self.curr_motor_4a = QLabel("4:", self.settings_tab)
-        self.curr_motor_4a.move(250, w - 230)
-
-        # Receiver channels
-        self.curr_rcvr_chan = QLabel(self.settings_tab)
-        self.curr_rcvr_chan.setText("Receiver Channels:")
-        self.curr_rcvr_chan.move(100, w - 225)
-        self.curr_chan_1 = QLabel(self.settings_tab)
-        self.curr_chan_1.move(100, w - 210)
-        self.curr_chan_1.setText(str(fc.receiver.RECEIVER_CH1))
-        self.curr_chan_2 = QLabel(self.settings_tab)
-        self.curr_chan_2.move(120, w - 210)
-        self.curr_chan_2.setText(str(fc.receiver.RECEIVER_CH2))
-        self.curr_chan_3 = QLabel(self.settings_tab)
-        self.curr_chan_3.move(140, w - 210)
-        self.curr_chan_3.setText(str(fc.receiver.RECEIVER_CH3))
-        self.curr_chan_4 = QLabel(self.settings_tab)
-        self.curr_chan_4.move(160, w - 210)
-        self.curr_chan_4.setText(str(fc.receiver.RECEIVER_CH4))
-        self.curr_chan_5 = QLabel(self.settings_tab)
-        self.curr_chan_5.move(180, w - 210)
-        self.curr_chan_5.setText(str(fc.receiver.RECEIVER_CH5))
-
-        # Alpha
-        self.alpha_label = QLabel(self.settings_tab)
-        self.alpha_label.setText("Alpha:")
-        self.alpha_label.move(20, w-225)
-        self.alpha_value = QLabel(self.settings_tab)
-        self.alpha_value.move(20, w - 210)
-        self.alpha_value.setText(str(fc.imu.alpha))
-
+        self.flight_time_label = QLabel("Flight Time:", self.settings_tab)
+        self.flight_time_label.move(8, w - 225)
+        self.flight_time = QLineEdit(self.settings_tab)
+        self.flight_time.setReadOnly(True)
+        self.flight_time.move(78, w - 225)
+        self.flight_time.setFont(QFont("Helvetica", 15))
+        self.flight_time.resize(50,18)
+        self.flight_timer = QTimer()
+        self.time = QTime(0,0)
+        self.flight_timer.timeout.connect(self.update_timer)
 
 
     # gets the current updated PID values
@@ -368,16 +340,11 @@ class DroneGUI(QDialog):
             print("Error: Must input values into each coordinate.")
         else:
             print()
-            print("DTG: ", datetime.datetime.now())
-            print(" - Updated Proportional Gain:      ", "                  Roll: ", self.Kp0_textbox.text(),
-                  " Pitch: ", self.Kp1_textbox.text(),
-                  " Yaw: ", self.Kp2_textbox.text())
-            print(" - Updated Integral Gain:          ", "                      Roll: ", self.Ki0_textbox.text(),
-                  " Pitch: ", self.Ki1_textbox.text(),
-                  " Yaw: ", self.Ki2_textbox.text())
-            print(" - Updated Proportional Gain:      ", "                  Roll: ", self.Kd0_textbox.text(),
-                  " Pitch: ", self.Kd1_textbox.text(),
-                  " Yaw: ", self.Kd2_textbox.text())
+            print(time.strftime("   %H:%M:%S %Z"))
+            print("Update PID Gains")
+            print("P:    ", fc.Kp[0], " ", fc.Kp[1], " ", fc.Kp[2])
+            print("I :    ", fc.Ki[0], " ", fc.Ki[1], " ", fc.Ki[2])
+            print("D:    ", fc.Kd[0], " ", fc.Kd[1], " ", fc.Kd[2])
             print()
 
     # creates the PID text boxes, button for updating PID values
@@ -521,39 +488,131 @@ class DroneGUI(QDialog):
         # make QTimer
         self.qTimer = QTimer(self)
 
-        # label to title the data monitor
-        self.sensor_label_title = QLabel("sensor_label", self.data_tab)
-        self.sensor_label_title.move(l-360,10)
-        self.sensor_label_title.setFrameShape(QFrame.Panel)
-        self.sensor_label_title.setFrameShadow(QFrame.Sunken)
-        self.sensor_label_title.setStyleSheet("background-color:rgb(53,53,53);")
+        # motor 1 output title
+        self.motor_1_output_title = QPushButton("Motor 1 Output", self.data_tab)
+        self.motor_1_output_title_color = QLabel("[x]",self.data_tab)
+        self.motor_1_output_title_color.move(l-480, 60)
+        palette1 = self.motor_1_output_title_color.palette()
+        palette1.setColor(QPalette.Foreground, QColor("red"))
+        self.motor_1_output_title_color.setPalette(palette1)
 
-        # label to hold the data
-        self.sensor_label = QLabel("sensor_value", self.data_tab)
-        self.sensor_label.move(l-340,25)
-        self.sensor_label.resize(50,12)
+        self.motor_1_output_title.move(l-465, 60)
+        self.motor_1_output_title.setStyleSheet("background: black; color: gray;")
+        self.motor_1_output_title.setEnabled(False)
+        self.motor_1_output_title.setCheckable(False)
+        self.motor_1_output_title.setFixedSize(90,13)
+        self.motor_1_output_title.setFont(QFont("Helvetica", 11.5))
 
-        # set interval to update every 500 ms
-        self.qTimer.setInterval(500)
+        # motor 2 output title
+        self.motor_2_output_title = QPushButton("Motor 2 Output", self.data_tab)
+        self.motor_2_output_title_color = QLabel("[x]", self.data_tab)
+        palette2 = self.motor_2_output_title_color.palette()
+        palette2.setColor(QPalette.Foreground, QColor("blue"))
+        self.motor_2_output_title_color.move(l - 480, 110)
+        self.motor_2_output_title_color.setPalette(palette2)
+        self.motor_2_output_title.move(l - 465, 110)
+        self.motor_2_output_title.setStyleSheet("background: black; color: gray;")
+        self.motor_2_output_title.setEnabled(False)
+        self.motor_2_output_title.setCheckable(False)
+        self.motor_2_output_title.setFixedSize(90, 13)
+        self.motor_2_output_title.setFont(QFont("Helvetica", 11.5))
+
+        # motor 3 output title
+        self.motor_3_output_title = QPushButton("Motor 3 Output", self.data_tab)
+        self.motor_3_output_title_color = QLabel("[x]", self.data_tab)
+        palette3 = self.motor_3_output_title_color.palette()
+        palette3.setColor(QPalette.Foreground, QColor("yellow"))
+        self.motor_3_output_title_color.move(l - 480, 160)
+        self.motor_3_output_title_color.setPalette(palette3)
+        self.motor_3_output_title.move(l - 465, 160)
+        self.motor_3_output_title.setStyleSheet("background: black; color: gray;")
+        self.motor_3_output_title.setEnabled(False)
+        self.motor_3_output_title.setCheckable(False)
+        self.motor_3_output_title.setFixedSize(90, 13)
+        self.motor_3_output_title.setFont(QFont("Helvetica", 11.5))
+
+        # motor 4 output title
+        self.motor_4_output_title = QPushButton("Motor 4 Output", self.data_tab)
+        self.motor_4_output_title_color = QLabel("[x]", self.data_tab)
+        palette4 = self.motor_4_output_title_color.palette()
+        palette4.setColor(QPalette.Foreground, QColor("magenta"))
+        self.motor_4_output_title_color.move(l - 480, 210)
+        self.motor_4_output_title_color.setPalette(palette4)
+        self.motor_4_output_title.move(l - 465, 210)
+        self.motor_4_output_title.setStyleSheet("background: black; color: gray;")
+        self.motor_4_output_title.setEnabled(False)
+        self.motor_4_output_title.setCheckable(False)
+        self.motor_4_output_title.setFixedSize(90, 13)
+        self.motor_4_output_title.setFont(QFont("Helvetica", 11.5))
+
+
+        # motor 1 output
+        self.motor_1_output = QLabel(str(fc.motor_output[0]), self.data_tab)
+        self.motor_1_output.move(l - 460, 75)
+        self.motor_1_output.resize(70, 12)
+
+        # motor 2 output
+        self.motor_2_output = QLabel(str(fc.motor_output[1]), self.data_tab)
+        self.motor_2_output.move(l - 460, 125)
+        self.motor_2_output.resize(70, 12)
+
+        # motor 3 output
+        self.motor_3_output = QLabel(str(fc.motor_output[2]), self.data_tab)
+        self.motor_3_output.move(l - 460, 175)
+        self.motor_3_output.resize(70, 12)
+
+        # motor 4 output
+        self.motor_4_output = QLabel(str(fc.motor_output[3]), self.data_tab)
+        self.motor_4_output.move(l - 460, 225)
+        self.motor_4_output.resize(70, 12)
+
+
+        # pi connection status
+        self.pi_connection_status_is_clicked = False
+        self.pi_connection_status_label = QLabel("Pi Connection", self)
+        self.pi_connection_status_label.move(4,100)
+        self.pi_connection_status = QPushButton("Offline", self)
+        self.pi_connection_status.move(2,115)
+        self.pi_connection_status.setDefault(False)
+        self.pi_connection_status.setEnabled(False)
+        self.pi_connection_status.setStyleSheet("background-color: Red")
+
+        # set interval to update
+        self.qTimer.setInterval(250)
 
         # connect timeout signal to signal handler
         self.qTimer.timeout.connect(self.get_sensor_value)
 
         self.qTimer.start()
 
-        # dummy variable to demonstrate the monitor
-        self.i = np.pi
 
     # gets the sensor's value
     def get_sensor_value(self):
-        self.i += 0.000001
+        fc.motor_output[0] += random.uniform(-.05, .05)
+        fc.motor_output[1] += random.uniform(-.05, .05)
+        fc.motor_output[2] += random.uniform(-.05, .05)
+        fc.motor_output[3] += random.uniform(-.05, .05)
 
+        # get's the sensor value
+        self.motor_1_output.setText(str(fc.motor_output[0]))
+        self.motor_2_output.setText(str(fc.motor_output[1]))
+        self.motor_3_output.setText(str(fc.motor_output[2]))
+        self.motor_4_output.setText(str(fc.motor_output[3]))
+
+        # determines the status of the pi connection
+        if fc.pi_online:
+            self.pi_connection_status.setStyleSheet("background-color: Green")
+            self.pi_connection_status.setText("Online")
+            self.pi_connection_status_is_clicked = True
+        elif not fc.pi_online and self.pi_connection_status_is_clicked:
+            self.pi_connection_status.setStyleSheet("background-color: Red")
+            self.pi_connection_status.setText("Offline")
+            self.pi_connection_status_is_clicked = False
+
+        # gets the current PID
         self.curr_P.setText(str(fc.Kp))
         self.curr_I.setText(str(fc.Ki))
         self.curr_D.setText(str(fc.Kd))
-
-        # get's the sensor value
-        self.sensor_label.setText(str(self.i))
 
     # creates the plot graph button
     def create_plot_button(self):
@@ -568,26 +627,26 @@ class DroneGUI(QDialog):
     def start_timer(self):
         if self.timer.isActive():
             # sets the Y Range for the graph
-            self.pw.setYRange(-1, 1)
+            self.pw.setYRange(1, 2)
             print("Graph is already updating at ", self.timer.interval(), " ms between data retrievals")
         else:
             self.timer.start()
             # sets the Y Range for the graph
-            self.pw.setYRange(-1, 1)
+            self.pw.setYRange(1, 2)
 
     # create a live plot graph
     def create_plot(self):
         self.pw = pg.PlotWidget(self.data_tab)
         self.pw.showGrid(x=True,y=True)
-        self.pw.setTitle('Demo uses sin function and cos function values')
+        self.pw.setTitle('Motor Outputs [using Random]')
         self.pw.move(0,20)
         self.pw.resize(l/2,w/2)
         self.pw.show()
-        self.pw.setLabel('left', 'insert_value')
+        self.pw.setLabel('left', 'Motor Output')
         self.pw.setLabel('bottom', 'Time', units='s')
         self.pw.setAntialiasing(True)
         # sets the Y Range for the graph
-        self.pw.setYRange(-1,1)
+        self.pw.setYRange(1,2)
         self.timer = pg.QtCore.QTimer(self)
 
         self.stop_plot_button = QPushButton("Stop Graph Update", self.data_tab)
@@ -601,12 +660,15 @@ class DroneGUI(QDialog):
         self.start_plot_button.show()
 
         # buffer size for the data
-        self.buffer = 100
+        self.buffer = 200
         # queue to get the current delta time and values
         self.queue = Queue(self.buffer)
         # deque containing the values
         self.values_1 = deque([], maxlen=self.buffer)
         self.values_2 = deque([], maxlen=self.buffer)
+        self.values_3 = deque([], maxlen = self.buffer)
+        self.values_4 = deque([], maxlen=self.buffer)
+
         # deque containing the delta times
         self.times = deque([], maxlen=self.buffer)
 
@@ -615,11 +677,14 @@ class DroneGUI(QDialog):
             t = time.time() - self.timestamp
 
             # value(s) that we want to track
-            v1 = np.sin(t)
-            v2 = np.cos(t)
+            v1 = fc.motor_output[0]
+            v2 = fc.motor_output[1]
+            v3 = fc.motor_output[2]
+            v4 = fc.motor_output[3]
+
 
             # put the data into queue
-            self.queue.put([t,v1,v2])
+            self.queue.put([t,v1,v2,v3,v4])
 
             # get the data from the queue. Will wait until item is available
             data = self.queue.get(True, None)
@@ -628,12 +693,16 @@ class DroneGUI(QDialog):
             self.times.append(data[0])
             self.values_1.append(data[1])
             self.values_2.append(data[2])
+            self.values_3.append(data[3])
+            self.values_4.append(data[4])
 
 
             # draw the incoming data
             self.pw.clear()
             self.pw.plot(x=list(self.times)[-self.buffer:], y=list(self.values_1)[-self.buffer:],pen='r')
             self.pw.plot(x=list(self.times)[-self.buffer:], y=list(self.values_2)[-self.buffer:],pen='b')
+            self.pw.plot(x=list(self.times)[-self.buffer:], y=list(self.values_3)[-self.buffer:],pen='y')
+            self.pw.plot(x=list(self.times)[-self.buffer:], y=list(self.values_4)[-self.buffer:], pen='m')
 
         self.timer.timeout.connect(update)
         # length between updates (in ms)
@@ -660,6 +729,10 @@ class DroneGUI(QDialog):
     def exit_application(self):
         DroneGUI.close(self)
 
+    def update_timer(self):
+        self.time = self.time.addSecs(1)
+        self.flight_time.setText(self.time.toString("mm:ss"))
+
 
 # a class to read the command line output stream
 class Stream(QObject):
@@ -679,5 +752,7 @@ if __name__ == '__main__':
     gallery.setGeometry(0, 0, l, w)
     gallery.show()
     print("Cornell University Aerial Robotics 2019")
+    print("Version: ", version_number)
+    print()
     print("- Press Shift + 'Q' to exit")
     sys.exit(app.exec_())
