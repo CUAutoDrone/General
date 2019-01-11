@@ -1,19 +1,19 @@
-import datetime
-import time
-from collections import deque
-import datetime
-import time
-from collections import deque
-from multiprocessing import Queue
-import numpy as np
-import pyqtgraph as pg
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+try:
+    import datetime
+    import time
+    from collections import deque
+    from multiprocessing import Queue
+    import numpy as np
+    import pyqtgraph as pg
+    from PyQt5.QtCore import *
+    from PyQt5.QtGui import *
+    from PyQt5.QtWidgets import *
 
-from flight_controller import *
-
-import random
+    from flight_controller import *
+except ImportError:
+    print("Import Error has occurred. Make sure you have all the packages and modules installed.")
+    print("Visit https://github.com/CornellAerialRobotics/General/blob/master/flight_controller/GUI/README.md for requirements")
+    exit()
 
 
 # version number of the GUI
@@ -37,10 +37,6 @@ fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
 #####
 # Demonstrates the plot graph
 ######
-fc.motor_output[0] = random.uniform(1.3,1.5)
-fc.motor_output[1] = random.uniform(1.3,1.5)
-fc.motor_output[2] = random.uniform(1.3,1.5)
-fc.motor_output[3] = random.uniform(1.3,1.5)
 
 # TODO:
 # potential sensor/graph plot for 'wm' variable in FlightController.py
@@ -128,7 +124,6 @@ class DroneGUI(QDialog):
                     self.curr_status.setText("Active")
                     self.flight_timer.start(1000)
                     # Since we're skipping the unlock arm button,
-                    # fc.receiver.ARM = True
                     # fc.run()
                     return True
                 else:
@@ -491,7 +486,7 @@ class DroneGUI(QDialog):
         # motor 1 output title
         self.motor_1_output_title = QPushButton("Motor 1 Output", self.data_tab)
         self.motor_1_output_title_color = QLabel("[x]",self.data_tab)
-        self.motor_1_output_title_color.move(l-480, 60)
+        self.motor_1_output_title_color.move(l-479, 60)
         palette1 = self.motor_1_output_title_color.palette()
         palette1.setColor(QPalette.Foreground, QColor("red"))
         self.motor_1_output_title_color.setPalette(palette1)
@@ -508,7 +503,7 @@ class DroneGUI(QDialog):
         self.motor_2_output_title_color = QLabel("[x]", self.data_tab)
         palette2 = self.motor_2_output_title_color.palette()
         palette2.setColor(QPalette.Foreground, QColor("blue"))
-        self.motor_2_output_title_color.move(l - 480, 110)
+        self.motor_2_output_title_color.move(l - 479, 110)
         self.motor_2_output_title_color.setPalette(palette2)
         self.motor_2_output_title.move(l - 465, 110)
         self.motor_2_output_title.setStyleSheet("background: black; color: gray;")
@@ -522,7 +517,7 @@ class DroneGUI(QDialog):
         self.motor_3_output_title_color = QLabel("[x]", self.data_tab)
         palette3 = self.motor_3_output_title_color.palette()
         palette3.setColor(QPalette.Foreground, QColor("yellow"))
-        self.motor_3_output_title_color.move(l - 480, 160)
+        self.motor_3_output_title_color.move(l - 479, 160)
         self.motor_3_output_title_color.setPalette(palette3)
         self.motor_3_output_title.move(l - 465, 160)
         self.motor_3_output_title.setStyleSheet("background: black; color: gray;")
@@ -536,7 +531,7 @@ class DroneGUI(QDialog):
         self.motor_4_output_title_color = QLabel("[x]", self.data_tab)
         palette4 = self.motor_4_output_title_color.palette()
         palette4.setColor(QPalette.Foreground, QColor("magenta"))
-        self.motor_4_output_title_color.move(l - 480, 210)
+        self.motor_4_output_title_color.move(l - 479, 210)
         self.motor_4_output_title_color.setPalette(palette4)
         self.motor_4_output_title.move(l - 465, 210)
         self.motor_4_output_title.setStyleSheet("background: black; color: gray;")
@@ -588,10 +583,6 @@ class DroneGUI(QDialog):
 
     # gets the sensor's value
     def get_sensor_value(self):
-        fc.motor_output[0] += random.uniform(-.05, .05)
-        fc.motor_output[1] += random.uniform(-.05, .05)
-        fc.motor_output[2] += random.uniform(-.05, .05)
-        fc.motor_output[3] += random.uniform(-.05, .05)
 
         # get's the sensor value
         self.motor_1_output.setText(str(fc.motor_output[0]))
@@ -638,7 +629,7 @@ class DroneGUI(QDialog):
     def create_plot(self):
         self.pw = pg.PlotWidget(self.data_tab)
         self.pw.showGrid(x=True,y=True)
-        self.pw.setTitle('Motor Outputs [using Random]')
+        self.pw.setTitle('Live Update Graph')
         self.pw.move(0,20)
         self.pw.resize(l/2,w/2)
         self.pw.show()
@@ -756,3 +747,4 @@ if __name__ == '__main__':
     print()
     print("- Press Shift + 'Q' to exit")
     sys.exit(app.exec_())
+
