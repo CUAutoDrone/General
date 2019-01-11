@@ -10,25 +10,27 @@ live feed data for debugging and performance optimization. This interface revolv
 
 
 # Current Features [<kbd>Version: 0.1.0</kbd>]
-**Settings Tab**
-![Imgur](https://i.imgur.com/ZE0I5WC.png?3)
+**Settings Tab:**
+* ![Imgur](https://i.imgur.com/ZE0I5WC.png?3)
 * Buttons, shortcuts keys to **arm**, **kill**, and **unlock arm**
 * Insert **PID gains** directly
 * Display current drone status and flight time
 
-**Data Tab**
-![Imgur](https://i.imgur.com/f5Qin1C.png)
+**Data Tab:**
+* ![Imgur](https://i.imgur.com/f5Qin1C.png)
 * Live update data graph plot
 * Live update sensor readings
 
-**Flight Pattern Tab**
+**Flight Pattern Tab:**
 * Currently Under Construction
 
-**CV Tab**
+**CV Tab:**
 * Currently Under Construction
 
 ## To Execute:
+
 ### Prerequisites:
+
 * ```Python 3```
 * ```PyQt5```
 * ```numpy```
@@ -47,6 +49,7 @@ python3 GUI_Drone.py
 
 
 ### To Create an Executable on Mac OS:
+
 First, type in your terminal:
 ```pip install -U py2app```
 This will install py2app, which converts python files into programs
@@ -63,6 +66,7 @@ python3 setup.py py2app -A --packages=PyQt5
 ```
 
 ### To Create an Executable on PC, Linux:
+
 First type in your terminal:
 ```
 pip install pyinstaller
@@ -73,9 +77,11 @@ pyinstall --onefile --windowed GUI_Drone.py
 ```
 
 ### Versioning
+
 We use [SemVer](http://semver.org/) for versioning.
 
 ### Author(s)
+
 Chris Gyurgyik
 
 
