@@ -1,18 +1,22 @@
 try:
-    import datetime
     import time
     from collections import deque
     from multiprocessing import Queue
     import numpy as np
     import pyqtgraph as pg
-    from PyQt5.QtCore import *
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
 
+    from PyQt5.QtCore import QObject, pyqtSignal, QRect, QSize, Qt, QTimer, QTime, QEvent
+    from PyQt5.QtGui import QFont, QPalette, QColor, QDoubleValidator, QTextCursor
+    from PyQt5.QtWidgets import QApplication, QPushButton, QLabel, QDialog, QTabWidget, \
+         QWidget, QSizePolicy, QLineEdit, QFrame, QTextEdit, qApp
+    import matplotlib1111
     from flight_controller import *
-except ImportError:
+except ImportError as e:
     print("Import Error has occurred. Make sure you have all the packages and modules installed.")
-    print("Visit https://github.com/CornellAerialRobotics/General/blob/master/flight_controller/GUI/README.md for requirements")
+    print("Visit https://github.com/CornellAerialRobotics/General/blob/master/flight_controller/"
+          "GUI/README.md for requirements")
+    print()
+    print(e)
     exit()
 
 
