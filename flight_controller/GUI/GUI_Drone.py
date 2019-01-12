@@ -9,7 +9,6 @@ try:
     from PyQt5.QtGui import QFont, QPalette, QColor, QDoubleValidator, QTextCursor
     from PyQt5.QtWidgets import QApplication, QPushButton, QLabel, QDialog, QTabWidget, \
          QWidget, QSizePolicy, QLineEdit, QFrame, QTextEdit, qApp
-    import matplotlib1111
     from flight_controller import *
 except ImportError as e:
     print("Import Error has occurred. Make sure you have all the packages and modules installed.")
@@ -38,9 +37,6 @@ motor = Motor(10, 9, 25, 8, 400)
 # initialize the flight controller
 fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
                       np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
-#####
-# Demonstrates the plot graph
-######
 
 # TODO:
 # potential sensor/graph plot for 'wm' variable in FlightController.py
