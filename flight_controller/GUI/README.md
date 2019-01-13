@@ -34,8 +34,8 @@ live feed data for debugging and performance optimization. This interface revolv
 * ```numpy```
 * ```pyqtgraph```
 * ```flight_controller```
-*```Images```
-*```Images/Icons```
+* ```Images```
+* ```Images/Icons```
 
 First, open Terminal. Find the folder that setup.py and GUI_Drone.py are located in terminal.
 For example,
