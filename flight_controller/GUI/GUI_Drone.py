@@ -323,13 +323,6 @@ class DroneGUI(QDialog):
         self.time = QTime(0,0)
         self.flight_timer.timeout.connect(self.update_timer)
 
-        self.border = QLabel(self.settings_tab)
-        self.border.setPixmap(QPixmap('Images/Icons/blue_graphics.png'))
-        self.border.move(0,275)
-        self.border_rev = QLabel(self.settings_tab)
-        self.border_rev.setPixmap(QPixmap('Images/Icons/blue_graphics_rotated.png'))
-        self.border_rev.move(224, 275)
-
         self.hard_wired_button = QPushButton("Hard Wired Connections", self.settings_tab)
         self.hard_wired_button.move(l-400,0)
         self.hard_wired_button.setStyleSheet("background-color:#002366;")
@@ -968,5 +961,3 @@ if __name__ == '__main__':
     print()
     print("-    Press Shift + 'Q' to exit")
     sys.exit(app.exec_())
-
-
