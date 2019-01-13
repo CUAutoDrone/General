@@ -9,12 +9,13 @@ live feed data for debugging and performance optimization. This interface revolv
 * Please let me know if there is any additional features or changes you would like. Examples may include types of data you want to plot, external features, etc.
 
 
-# Current Features [<kbd>Version: 0.1.0</kbd>]
+# Current Features [<kbd>Version: 0.1.1</kbd>]
 **Settings Tab:**
 * ![Imgur](https://i.imgur.com/ZE0I5WC.png?3)
 * Buttons, shortcuts keys to **arm**, **kill**, and **unlock arm**
 * Insert **PID gains** directly
 * Display current drone status and flight time
+* Reference to GPIO pin numbers, PWM frequency, and more
 
 **Data Tab:**
 * ![Imgur](https://i.imgur.com/f5Qin1C.png)
@@ -22,9 +23,6 @@ live feed data for debugging and performance optimization. This interface revolv
 * Live update sensor readings
 
 **Flight Pattern Tab:**
-* Currently Under Construction
-
-**CV Tab:**
 * Currently Under Construction
 
 ## To Execute:
@@ -36,6 +34,8 @@ live feed data for debugging and performance optimization. This interface revolv
 * ```numpy```
 * ```pyqtgraph```
 * ```flight_controller```
+*```Images```
+*```Images/Icons```
 
 First, open Terminal. Find the folder that setup.py and GUI_Drone.py are located in terminal.
 For example,
