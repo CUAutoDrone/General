@@ -9,23 +9,28 @@ live feed data for debugging and performance optimization. This interface revolv
 * Please let me know if there is any additional features or changes you would like. Examples may include types of data you want to plot, external features, etc.
 
 
-# Current Features [<kbd>Version: 0.1.1</kbd>]
-**Settings Tab:**
-* ![Imgur](https://i.imgur.com/ZE0I5WC.png?3)
+# Current Features [<kbd>Version: 0.1.2</kbd>]
+## Settings
+![Imgur](https://i.imgur.com/eKmdKgc.png)
 * Buttons, shortcuts keys to **arm**, **kill**, and **unlock arm**
 * Insert **PID gains** directly
 * Display current drone status and flight time
-* Reference to GPIO pin numbers, PWM frequency, and more
+* Reference for GPIO pin numbers, PWM frequency, PID inputs, and more
 
-**Data Tab:**
-* ![Imgur](https://i.imgur.com/f5Qin1C.png)
-* Live update data graph plot
+## Data
+![Imgur](https://i.imgur.com/XXsLmO4.png)
+* Live update data graph plot (Currently displays sin function for demonstration purposes)
 * Live update sensor readings
 
-**Flight Pattern Tab:**
+## Flight Pattern
 * Currently Under Construction
 
-## To Execute:
+## About
+![Imgur](https://i.imgur.com/QdmTJn5.png)
+* Website links to various sources
+
+
+# To Execute:
 
 ### Prerequisites:
 
