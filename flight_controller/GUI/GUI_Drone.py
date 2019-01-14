@@ -20,7 +20,7 @@ except ImportError as e:
 
 
 # version number of the GUI
-version_number = "0.1.1"
+version_number = "0.1.2"
 
 # length of GUI
 l = 960
@@ -89,6 +89,9 @@ class DroneGUI(QDialog):
         # add logo
         self.set_logo()
 
+        # set up about tab
+        self.show_about_info()
+
     # filters space bar to allow it to be a killswitch only
     # filters 'a' to allow it to arm the drone only
     def eventFilter(self, obj, event):
@@ -155,9 +158,11 @@ class DroneGUI(QDialog):
         self.data_tab = QWidget()
         self.settings_tab = QWidget()
         self.flight_pattern_tab = QWidget()
+        self.about_tab = QWidget()
         self.tabWidget.addTab(self.settings_tab, "Settings")
         self.tabWidget.addTab(self.data_tab, "Data")
         self.tabWidget.addTab(self.flight_pattern_tab, "Flight Pattern")
+        self.tabWidget.addTab(self.about_tab, "About")
         self.tabWidget.show()
 
     def create_palette(self):
@@ -266,65 +271,68 @@ class DroneGUI(QDialog):
 
     # displays current drone details
     def drone_information(self):
+        # widget for the drone status section
+        self.drone_status = QWidget(self.settings_tab)
+        self.drone_status.resize(180,110)
+        self.drone_status.move(92,200)
 
-        # PID
-        self.state_label = QPushButton("Drone Status", self.settings_tab)
+        self.state_label = QPushButton("Drone Status", self.drone_status)
         self.state_label.setCheckable(False)
         self.state_label.setEnabled(False)
         self.state_label.setStyleSheet("background: #333332; color: white")
-        self.state_label.move(125, w-340)
+        self.state_label.move(0, 0)
         self.state_label.show()
         self.state_label.resize(80,20)
-        self.curr_status = QPushButton("Inactive", self.settings_tab)
+        self.curr_status = QPushButton("Inactive", self.drone_status)
         self.curr_status.setIcon(QIcon("Images/Icons/drone.png"))
         self.curr_status.setDefault(False)
         self.curr_status.setEnabled(False)
         self.curr_status.setStyleSheet("background-color: #922B3E;")
-        self.curr_status.move(205, w-340)
+        self.curr_status.move(81,0)
         self.curr_status.resize(70,20)
-        self.curr_P = QLineEdit(self.settings_tab)
+        self.curr_P = QLineEdit(self.drone_status)
         self.curr_P.setReadOnly(True)
-        self.curr_P_label = QLabel(self.settings_tab)
-        self.curr_P_label.move(130, w-315)
+        self.curr_P_label = QLabel(self.drone_status)
+        self.curr_P_label.move(2, 25)
         self.curr_P_label.setText("Proportional:")
         self.curr_P_label.show()
         self.curr_P.setText(str(fc.Kp))  # " ", str(fc.Ki), " ", str(fc.Kd))
-        self.curr_P.move(208, w-315)
+        self.curr_P.move(80, 25)
         self.curr_P.resize(90,12)
         self.curr_P.show()
-        self.curr_I_label = QLabel(self.settings_tab)
-        self.curr_I_label.move(130, w - 300)
+        self.curr_I_label = QLabel(self.drone_status)
+        self.curr_I_label.move(2, 40)
         self.curr_I_label.setText("       Integral:")
         self.curr_I_label.show()
-        self.curr_I = QLineEdit(self.settings_tab)
+        self.curr_I = QLineEdit(self.drone_status)
         self.curr_I.setReadOnly(True)
         self.curr_I.setText(str(fc.Ki))  # " ", str(fc.Ki), " ", str(fc.Kd))
-        self.curr_I.move(208, w - 300)
+        self.curr_I.move(80, 40)
         self.curr_I.resize(90,12)
         self.curr_I.show()
-        self.curr_D_label = QLabel(self.settings_tab)
-        self.curr_D_label.move(130, w - 285)
+        self.curr_D_label = QLabel(self.drone_status)
+        self.curr_D_label.move(2, 55)
         self.curr_D_label.setText("   Derivative:")
         self.curr_D_label.show()
-        self.curr_D = QLineEdit(self.settings_tab)
+        self.curr_D = QLineEdit(self.drone_status)
         self.curr_D.setReadOnly(True)
         self.curr_D.setText(str(fc.Kd))  # " ", str(fc.Ki), " ", str(fc.Kd))
-        self.curr_D.move(208, w - 285)
+        self.curr_D.move(80, 55)
         self.curr_D.resize(90, 12)
         self.curr_D.show()
-        self.flight_time_label = QLabel("Flight Time:", self.settings_tab)
-        self.flight_time_label.move(135, w - 265)
-        self.flight_time = QLineEdit(self.settings_tab)
+        self.flight_time_label = QLabel("Flight Time:", self.drone_status)
+        self.flight_time_label.move(5, 85)
+        self.flight_time = QLineEdit(self.drone_status)
         self.flight_time.setReadOnly(True)
-        self.flight_time.move(208, w - 268)
+        self.flight_time.move(80, 80)
         self.flight_time.setFont(QFont("Helvetica", 15))
         self.flight_time.resize(50,18)
         self.flight_timer = QTimer()
         self.time = QTime(0,0)
         self.flight_timer.timeout.connect(self.update_timer)
 
-        self.hard_wired_button = QPushButton("Hard Wired Connections", self.settings_tab)
-        self.hard_wired_button.move(l-400,0)
+        self.hard_wired_button = QPushButton("Hard Wired Inputs", self.settings_tab)
+        self.hard_wired_button.move(l-365,2)
         self.hard_wired_button.setStyleSheet("background-color:#002366;")
         self.hard_wired_button.clicked.connect(self.show_hard_wire_connections)
 
@@ -348,25 +356,29 @@ class DroneGUI(QDialog):
     # creates the PID text boxes, button for updating PID values
     def create_PID_insert(self):
 
+        # widget for PID insertion
+        self.PID_widget = QWidget(self.settings_tab)
+        self.PID_widget.resize(300,200)
+        self.PID_widget.move(10,20)
         # proportional text
         self.onlyDouble = QDoubleValidator()
-        self.Kp0_textbox = QLineEdit(self.settings_tab)
+        self.Kp0_textbox = QLineEdit(self.PID_widget)
         self.Kp0_textbox.clearFocus()
         self.Kp0_textbox.setValidator(self.onlyDouble)
         self.Kp0_textbox.resize(50, 23)
         self.Kp0_textbox.setText(str(fc.Kp[0]))
-        self.Kp1_textbox = QLineEdit(self.settings_tab)
+        self.Kp1_textbox = QLineEdit(self.PID_widget)
         self.Kp1_textbox.setValidator(self.onlyDouble)
         self.Kp1_textbox.resize(50, 23)
         self.Kp1_textbox.move(50,0)
         self.Kp1_textbox.setText(str(fc.Kp[1]))
-        self.Kp2_textbox = QLineEdit(self.settings_tab)
+        self.Kp2_textbox = QLineEdit(self.PID_widget)
         self.Kp2_textbox.setValidator(self.onlyDouble)
         self.Kp2_textbox.resize(50, 23)
         self.Kp2_textbox.move(100, 0)
         self.Kp2_textbox.setText(str(fc.Kp[2]))
         # proportional label
-        self.Kp_label = QLabel(self.settings_tab)
+        self.Kp_label = QLabel(self.PID_widget)
         self.Kp_label.setText('Proportional')
         self.Kp_label.move(150, 0)
         self.Kp_label.resize(85, 23)
@@ -376,23 +388,23 @@ class DroneGUI(QDialog):
         self.Kp_label.setStyleSheet("background-color:rgb(53,53,53);")
 
         # integral text
-        self.Ki0_textbox = QLineEdit(self.settings_tab)
+        self.Ki0_textbox = QLineEdit(self.PID_widget)
         self.Ki0_textbox.move(0, 27)
         self.Ki0_textbox.resize(50, 23)
         self.Ki0_textbox.setValidator(self.onlyDouble)
         self.Ki0_textbox.setText(str(fc.Ki[0]))
-        self.Ki1_textbox = QLineEdit(self.settings_tab)
+        self.Ki1_textbox = QLineEdit(self.PID_widget)
         self.Ki1_textbox.move(50, 27)
         self.Ki1_textbox.resize(50, 23)
         self.Ki1_textbox.setValidator(self.onlyDouble)
         self.Ki1_textbox.setText(str(fc.Ki[1]))
-        self.Ki2_textbox = QLineEdit(self.settings_tab)
+        self.Ki2_textbox = QLineEdit(self.PID_widget)
         self.Ki2_textbox.move(100, 27)
         self.Ki2_textbox.resize(50, 23)
         self.Ki2_textbox.setValidator(self.onlyDouble)
         self.Ki2_textbox.setText(str(fc.Ki[2]))
         # integral label
-        self.Ki_label = QLabel(self.settings_tab)
+        self.Ki_label = QLabel(self.PID_widget)
         self.Ki_label.setText('Integral')
         self.Ki_label.move(150, 27)
         self.Ki_label.resize(85, 23)
@@ -402,23 +414,23 @@ class DroneGUI(QDialog):
         self.Ki_label.setStyleSheet("background-color:rgb(53,53,53);")
 
         # derivative text
-        self.Kd0_textbox = QLineEdit(self.settings_tab)
+        self.Kd0_textbox = QLineEdit(self.PID_widget)
         self.Kd0_textbox.move(0, 54)
         self.Kd0_textbox.resize(50, 23)
         self.Kd0_textbox.setValidator(self.onlyDouble)
         self.Kd0_textbox.setText(str(fc.Kd[0]))
-        self.Kd1_textbox = QLineEdit(self.settings_tab)
+        self.Kd1_textbox = QLineEdit(self.PID_widget)
         self.Kd1_textbox.move(50, 54)
         self.Kd1_textbox.resize(50, 23)
         self.Kd1_textbox.setValidator(self.onlyDouble)
         self.Kd1_textbox.setText(str(fc.Kd[1]))
-        self.Kd2_textbox = QLineEdit(self.settings_tab)
+        self.Kd2_textbox = QLineEdit(self.PID_widget)
         self.Kd2_textbox.move(100, 54)
         self.Kd2_textbox.resize(50, 23)
         self.Kd2_textbox.setValidator(self.onlyDouble)
         self.Kd2_textbox.setText(str(fc.Kd[2]))
         # derivative label
-        self.Kd_label = QLabel(self.settings_tab)
+        self.Kd_label = QLabel(self.PID_widget)
         self.Kd_label.resize(85, 23)
         self.Kd_label.setText('Derivative')
         self.Kd_label.move(150, 54)
@@ -428,7 +440,7 @@ class DroneGUI(QDialog):
         self.Kd_label.setStyleSheet("background-color:rgb(53,53,53);")
 
         # button to insert new PID values
-        self.insert_PID_values = QPushButton("Insert PID Gains", self.settings_tab)
+        self.insert_PID_values = QPushButton("Insert PID Gains", self.PID_widget)
         self.insert_PID_values.setStyleSheet("background-color:	#002366;")
         self.insert_PID_values.move(150, 80)
         self.insert_PID_values.resize(85, 25)
@@ -438,7 +450,7 @@ class DroneGUI(QDialog):
         self.insert_PID_values.clicked.connect(self.get_PID_value)
 
         # label for Roll, Pitch, Yaw
-        self.RPY = QLabel(self.settings_tab)
+        self.RPY = QLabel(self.PID_widget)
         self.RPY.move(0,80)
         self.RPY.setText(' Roll        Pitch         Yaw  ')
         self.RPY.setFrameShape(QFrame.Panel)
@@ -515,12 +527,12 @@ class DroneGUI(QDialog):
     def start_timer(self):
         if self.timer.isActive():
             # sets the Y Range for the graph
-            self.pw.setYRange(1, 2)
+            self.pw.setYRange(-2, 2)
             print("Graph is already updating at ", self.timer.interval(), " ms between data retrievals")
         else:
             self.timer.start()
             # sets the Y Range for the graph
-            self.pw.setYRange(1, 2)
+            self.pw.setYRange(-2, 2)
 
     # create a live motor output plot graph
     def create_motor_output_plot(self):
@@ -610,7 +622,7 @@ class DroneGUI(QDialog):
 
         self.pw = pg.PlotWidget(self.data_tab)
         self.pw.showGrid(x=True,y=True)
-        self.pw.setTitle('Live Update Graph')
+        self.pw.setTitle('Live Update Graph (demonstration with sin function)')
         self.pw.move(0,20)
         self.pw.resize(l/2,w/2)
         self.pw.show()
@@ -618,7 +630,7 @@ class DroneGUI(QDialog):
         self.pw.setLabel('bottom', 'Time', units='s')
         self.pw.setAntialiasing(True)
         # sets the Y Range for the graph
-        self.pw.setYRange(1,2)
+        self.pw.setYRange(-2,2)
         self.timer = pg.QtCore.QTimer(self)
 
         self.stop_plot_button = QPushButton("Pause", self.data_tab)
@@ -646,6 +658,7 @@ class DroneGUI(QDialog):
         self.values_2 = deque([], maxlen=self.buffer)
         self.values_3 = deque([], maxlen = self.buffer)
         self.values_4 = deque([], maxlen=self.buffer)
+        self.values_5 = deque([], maxlen=self.buffer)
 
         # deque containing the delta times
         self.times = deque([], maxlen=self.buffer)
@@ -659,10 +672,12 @@ class DroneGUI(QDialog):
             v2 = fc.motor_output[1]
             v3 = fc.motor_output[2]
             v4 = fc.motor_output[3]
+            # demonstration
+            v5 = np.sin(t)
 
 
             # put the data into queue
-            self.queue.put([t,v1,v2,v3,v4])
+            self.queue.put([t,v1,v2,v3,v4,v5])
 
             # get the data from the queue. Will wait until item is available
             data = self.queue.get(True, None)
@@ -673,6 +688,7 @@ class DroneGUI(QDialog):
             self.values_2.append(data[2])
             self.values_3.append(data[3])
             self.values_4.append(data[4])
+            self.values_5.append(data[5])
 
 
             # draw the incoming data
@@ -681,6 +697,7 @@ class DroneGUI(QDialog):
             self.pw.plot(x=list(self.times)[-self.buffer:], y=list(self.values_2)[-self.buffer:],pen='b')
             self.pw.plot(x=list(self.times)[-self.buffer:], y=list(self.values_3)[-self.buffer:],pen='y')
             self.pw.plot(x=list(self.times)[-self.buffer:], y=list(self.values_4)[-self.buffer:], pen='m')
+            self.pw.plot(x=list(self.times)[-self.buffer:], y=list(self.values_5)[-self.buffer:], pen='w')
 
         self.timer.timeout.connect(update)
         # length between updates (in ms)
@@ -753,14 +770,15 @@ class DroneGUI(QDialog):
     # shows pop up for the hard wire connections
     def show_hard_wire_connections(self):
         self.window = QDialog(self.settings_tab)
-        self.window.resize(245,386)
-        self.window.move(l - 508, 250)
+        self.window.setWindowTitle("Settings")
+        self.window.resize(145,405)
+        self.window.move(l - 408, 247)
         self.window.show()
 
         self.gpio_label = QPushButton("GPIO Reference", self.window)
         self.gpio_label.setCheckable(False)
         self.gpio_label.setEnabled(False)
-        self.gpio_label.move(2,0)
+        self.gpio_label.move(24,1)
         self.gpio_label.show()
         self.gpio_label.setStyleSheet("background: #333332; color: white")
 
@@ -902,17 +920,17 @@ class DroneGUI(QDialog):
         self.gpio_label = QPushButton("PWM Frequency (Hz)", self.window)
         self.gpio_label.setCheckable(False)
         self.gpio_label.setEnabled(False)
-        self.gpio_label.move(2, 220)
+        self.gpio_label.move(2, 210)
         self.gpio_label.show()
         self.gpio_label.setStyleSheet("background: #333332; color: white")
 
         self.hz_pic = QLabel(self.window)
         self.hz_pic.setPixmap(QPixmap("Images/Icons/freq.png"))
-        self.hz_pic.move(70,244)
+        self.hz_pic.move(70,234)
         self.hz_pic.show()
         self.hz_count = QLineEdit(self.window)
         self.hz_count.setReadOnly(True)
-        self.hz_count.move(84, 245)
+        self.hz_count.move(84, 235)
         self.hz_count.resize(40, 12)
         self.hz_count.show()
         self.hz_count.setText(str(fc.motor.PWM_frequency))
@@ -920,21 +938,142 @@ class DroneGUI(QDialog):
         self.gpio_label = QPushButton("MPU6050 Address", self.window)
         self.gpio_label.setCheckable(False)
         self.gpio_label.setEnabled(False)
-        self.gpio_label.move(2, 280)
+        self.gpio_label.move(18, 350)
         self.gpio_label.show()
         self.gpio_label.setStyleSheet("background: #333332; color: white")
 
         self.imu_pic = QLabel(self.window)
         self.imu_pic.setPixmap(QPixmap("Images/Icons/imu.png"))
-        self.imu_pic.move(64, 304)
+        self.imu_pic.move(81, 374)
         self.imu_pic.show()
 
         self.mpu_address = QLineEdit(self.window)
         self.mpu_address.setReadOnly(True)
-        self.mpu_address.move(78, 305)
+        self.mpu_address.move(95, 374)
         self.mpu_address.resize(30, 12)
         self.mpu_address.show()
         self.mpu_address.setText(str(fc.imu.MPU6050_address))
+
+        # sample time
+        self.sample_time_label = QPushButton("Sample Time (ms)", self.window)
+        self.sample_time_label.setCheckable(False)
+        self.sample_time_label.setEnabled(False)
+        self.sample_time_label.move(20, 300)
+        self.sample_time_label.show()
+        self.sample_time = QLineEdit(self.window)
+        self.sample_time.setReadOnly(True)
+        self.sample_time.resize(50, 12)
+        self.sample_time.move(75, 324)
+        self.sample_time.show()
+        self.sample_time.setText(str(fc.imu.sample_time))
+        self.sample_time_label.setStyleSheet("background: #333332; color: white")
+        self.sample_time_pic = QLabel(self.window)
+        self.sample_time_pic.setPixmap(QPixmap("Images/Icons/clock.png"))
+        self.sample_time_pic.move(58, 323)
+        self.sample_time_pic.show()
+
+        # PID input/output limitations
+        self.io_lim_label = QPushButton("PID Output Limits", self.window)
+        self.io_lim_label.setCheckable(False)
+        self.io_lim_label.setEnabled(False)
+        self.io_lim_label.move(23, 258)
+        self.io_lim_label.show()
+
+        self.io_lim_lower = QLineEdit(self.window)
+        self.io_lim_lower.setReadOnly(True)
+        self.io_lim_lower.resize(38,12)
+        self.io_lim_lower.move(24, 282)
+        self.io_lim_lower.show()
+        self.io_lim_lower.setText(str(fc.imu.output_min))
+        self.io_lim_pic_dwn = QLabel(self.window)
+        self.io_lim_pic_dwn.setPixmap(QPixmap("Images/Icons/down_arrow.png"))
+        self.io_lim_pic_dwn.move(9, 280)
+        self.io_lim_pic_dwn.show()
+
+        self.io_lim_hi = QLineEdit(self.window)
+        self.io_lim_hi.setReadOnly(True)
+        self.io_lim_hi.resize(38, 12)
+        self.io_lim_hi.move(87, 282)
+        self.io_lim_hi.show()
+        self.io_lim_hi.setText(str(fc.imu.output_max))
+        self.io_lim_pic_up = QLabel(self.window)
+        self.io_lim_pic_up.setPixmap(QPixmap("Images/Icons/up_arrow.png"))
+        self.io_lim_pic_up.move(72, 280)
+        self.io_lim_pic_up.show()
+
+    def show_about_info(self):
+        self.about_websites = QWidget(self.about_tab)
+        self.about_websites.move(10,10)
+        self.about_arc_label = QPushButton("ARC", self.about_websites)
+        self.about_arc_label.setCheckable(False)
+        self.about_arc_label.setEnabled(False)
+        self.about_arc_label.move(0, 10)
+        self.about_arc_label.show()
+        self.arc_website = QLabel(self.about_websites)
+        self.arc_website.move(2,36)
+        self.arc_website.setText('<a href="http://CUAerialRobotics.github.io/">Aerial Robotics Team</a>')
+        self.arc_website.setOpenExternalLinks(True)
+        self.arc_website.show()
+        self.arc_img = QLabel(self.about_websites)
+        self.arc_img.setPixmap(QPixmap('Images/CUARC_about_logo.png'))
+        self.arc_img.move(130,0)
+        self.arc_img.show()
+
+        self.about_git_label = QPushButton("GitHub", self.about_websites)
+        self.about_git_label.setCheckable(False)
+        self.about_git_label.setEnabled(False)
+        self.about_git_label.move(0, 100)
+        self.about_git_label.show()
+        self.arc_website_git = QLabel(self.about_websites)
+        self.arc_website_git.move(2, 126)
+        self.arc_website_git.setText(
+            '<a href="https://github.com/CornellAerialRobotics/">GitHub</a>')
+        self.arc_website_git.setOpenExternalLinks(True)
+        self.arc_website_git.show()
+        self.git_img = QLabel(self.about_websites)
+        self.git_img.setPixmap(QPixmap('Images/GitHub_logo.png'))
+        self.git_img.move(130, 82)
+        self.git_img.show()
+
+        self.about_comp_label = QPushButton("Competition", self.about_websites)
+        self.about_comp_label.setCheckable(False)
+        self.about_comp_label.setEnabled(False)
+        self.about_comp_label.move(0, 180)
+        self.about_comp_label.show()
+        self.comp_website = QLabel(self.about_websites)
+        self.comp_website.move(2, 204)
+        self.comp_website.setText(
+            '<a href="http://www.aerialroboticscompetition.org/">IARC</a>')
+        self.comp_website.setOpenExternalLinks(True)
+        self.comp_website.show()
+        self.comp_website_rules = QLabel(self.about_websites)
+        self.comp_website_rules.move(2, 224)
+        self.comp_website_rules.setText(
+            '<a href="http://www.aerialroboticscompetition.org/rules.php">Mission 8 Rules</a>')
+        self.comp_website_rules.setOpenExternalLinks(True)
+        self.comp_website_rules.show()
+        self.iarc_img = QLabel(self.about_websites)
+        self.iarc_img.setPixmap(QPixmap('Images/IARC_logo.png'))
+        self.iarc_img.move(130, 174)
+        self.iarc_img.show()
+
+        self.about_school_label = QPushButton("School", self.about_websites)
+        self.about_school_label.setCheckable(False)
+        self.about_school_label.setEnabled(False)
+        self.about_school_label.move(0, 274)
+        self.about_school_label.show()
+        self.school_website = QLabel(self.about_websites)
+        self.school_website.move(2, 298)
+        self.school_website.setText(
+            '<a href="https://www.cornell.edu/">Cornell University</a>')
+        self.school_website.setOpenExternalLinks(True)
+        self.school_website.show()
+        self.cu_img = QLabel(self.about_websites)
+        self.cu_img.setPixmap(QPixmap('Images/CU_logo.png'))
+        self.cu_img.move(130, 260)
+        self.cu_img.show()
+
+
 
 # a class to read the command line output stream
 class Stream(QObject):
@@ -946,6 +1085,17 @@ class Stream(QObject):
     def flush(self):
         pass
 
+
+def welcome_message():
+    print("Cornell University Aerial Robotics 2019")
+    print("                                       Version: ", version_number)
+    print('################################')
+    print("-    Press 'A' to Arm                         ####")
+    print("-    Press 'Spacebar' to Kill Switch  ####")
+    print("-    Press Shift + 'Q' to exit              ####")
+    print('################################')
+
+
 if __name__ == '__main__':
     import sys
 
@@ -953,11 +1103,5 @@ if __name__ == '__main__':
     gallery = DroneGUI()
     gallery.setGeometry(0, 0, l, w)
     gallery.show()
-    print("Cornell University Aerial Robotics 2019")
-    print("Version: ", version_number)
-    print()
-    print("-    Press 'A' to Arm")
-    print("-    Press 'Spacebar' to Kill Switch")
-    print()
-    print("-    Press Shift + 'Q' to exit")
+    welcome_message()
     sys.exit(app.exec_())
