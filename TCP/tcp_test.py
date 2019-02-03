@@ -3,7 +3,7 @@ import pigpio
 import time
 import numpy as np
 
-HOST = '192.168.2.2'
+HOST = '192.168.2.5'
 PORT = 9995
 
 #MPU6050 REGISTERS
@@ -151,7 +151,7 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
 	with conn:
 		print('Connected by',addr)
 		while True:
-			accel_data = get_acceleration_data(pi,MPU6050_handle)-acc_offsets
+			accel_data = get_acceleration_data(pi,MPU6050_handle)
 			ax = str(np.around(accel_data[1],3)).ljust(8)
 			conn.sendall(ax.encode("utf-8"))
 		
