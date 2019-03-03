@@ -24,9 +24,9 @@ def cbf(gpio,level,tick):
 
 pi = pigpio.pi()
 #sets BCM 5 to input
-pi.set_mode(5,pigpio.INPUT)
+pi.set_mode(18,pigpio.INPUT)
 #initializes callback, either logic change
-cb1 = pi.callback(5, pigpio.EITHER_EDGE,cbf)
+cb1 = pi.callback(18, pigpio.EITHER_EDGE,cbf)
 
 while True:
     print(str (pw_inches) + " inches away")
