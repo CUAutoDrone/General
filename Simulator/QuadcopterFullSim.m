@@ -2,8 +2,9 @@ clearvars;
 
 %Simulation Parameters
 start_time = 0; %sec
-end_time = 50; %sec
+end_time = 60; %sec
 dt = 0.01; %sec - set this as sensor refresh rate
+position_gain = 0.7; % Use to tune the position controller
 plotting = 1; %turns on plotting
 
 %helper quantities (dont worry about this)
@@ -37,7 +38,7 @@ p = [0;0;0]; %initial position
 v = [0;0;0]; %initial velocity
 
 %desired state
-pref = [100;0;10]; %desired position
+pref = [100;-30;10]; %desired position
 vref = [0;0;0]; %desired velocity
 
 %Plot Parameters - ignore
@@ -53,19 +54,19 @@ motors = zeros(4,N);
 for time = start_time:dt:end_time
     euler_state(1:3, step) = rad2deg(theta);
     
-    %calculate state error
-    perr = pref-p; 
-    verr = vref-v;
+    % find virtual target point at most 10m from drone.
+    disp = pref - p;
+    if norm(disp) > 10
+        vtp = p + 10 * disp / norm(disp);
+    else
+        vtp = pref;
+    end
     
-    %calculate control thrust and attitude
-    up = Kpos*[perr;verr]+[0;0;g];
-    b = [0;0;1];
-    qprime = [(dot(b,up)+norm(up)),-cross(b,up)'];
-    qr = qprime/norm(qprime);
-    thrust = norm(up)*m;
+    %calculate state error with respect to virtual target
+    [thrust, qr] = lqr_thrust_attitude(position_gain * Kpos, vtp, p, vref, v, g, m);
     
     %establish control bounds
-    [q_bound,thr_bound] = boundReferenceAttitude(thrust,qr,2*m*g,30,30);
+    [q_bound,thr_bound] = boundReferenceAttitude(thrust,qr,2*m*g,80,80);
     controleuler_state(:,3) = rad2deg(qtoeuler(q_bound));
     
     %calculate attitude error
@@ -99,14 +100,11 @@ for time = start_time:dt:end_time
 end
 
 if plotting == 1
-figure;
+figure
 hold on
 plot(times,pos_state(1,:))
 plot(times,pos_state(2,:))
 plot(times,pos_state(3,:))
-% plot(times,euler_state(1,:))
-% plot(times,euler_state(2,:))
-% plot(times,euler_state(3,:))
 % plot(times,motors(1,:))
 % plot(times,motors(2,:))
 % plot(times,motors(3,:))
@@ -115,6 +113,19 @@ plot(times,pos_state(3,:))
 % plot(times,controleuler_state(2,:))
 % plot(times,controleuler_state(3,:))
 hold off
+end
+
+function [thrust,qr] = lqr_thrust_attitude(Kpos, pref, p, vref, v, g, m)
+
+    perr = pref-p; 
+    verr = vref-v;
+    
+    %calculate control thrust and attitude
+    up = Kpos*[perr;verr]+[0;0;g];
+    b = [0;0;1];
+    qprime = [(dot(b,up)+norm(up)),-cross(b,up)'];
+    qr = qprime/norm(qprime);
+    thrust = norm(up)*m;
 end
 
 function tau = torque(wm, omega, I, L, b, k)
