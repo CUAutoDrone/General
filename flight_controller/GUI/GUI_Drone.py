@@ -92,9 +92,9 @@ class DroneGUI(QDialog):
         # set up about tab
         self.show_about_info()
 
-        # commands currently allowed
+        # commands currently allowed in the terminal
         self.accepted_commands = {"connect", "arm", "kill", "forward",
-                                  "altitude", "vehicle status", "pi status"}
+                                  "altitude", "vehicle status", "pi status", "square"}
 
         # accepted IPs for the Raspberry Pi
         self.accepted_ips = {"192.168.1.1"}
