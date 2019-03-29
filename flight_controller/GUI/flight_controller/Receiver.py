@@ -4,7 +4,6 @@ import numpy as np
 # a class representing the receiver
 class Receiver(object):
     def __init__(self, CH1, CH2, CH3, CH4, CH5):
-        # gpio pin numbers
         self.RECEIVER_CH1 = CH1
         self.RECEIVER_CH2 = CH2
         self.RECEIVER_CH3 = CH3
@@ -23,11 +22,6 @@ class Receiver(object):
         self.pulse_width_ch4 = 0
         self.rising_5 = 0
         self.pulse_width_ch5 = 0
-
-    @staticmethod
-    def map(num, a, b, c, d):
-        y = (num - a) * (d - c) / (b - a) + c
-        return y
 
     def cbf1(self, gpio, level, tick):
 
@@ -103,6 +97,11 @@ class Receiver(object):
                 else:
                     self.ARM = False
 
+    @staticmethod
+    def map(num, a, b, c, d):
+        y = (num - a) * (d - c) / (b - a) + c
+        return y
+
     def map_control_input(self):
 
         roll = Receiver.map(self.pulse_width_ch2, 1, 2, -30, 30)
@@ -120,4 +119,3 @@ class Receiver(object):
         else:
             print("Throttle is zeroed")
             return True
-

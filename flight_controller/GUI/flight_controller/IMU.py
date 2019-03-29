@@ -3,8 +3,8 @@ import numpy as np
 
 # a class representing the IMU
 class IMU(object):
-    def __init__(self, the_MPU6050_address, the_alpha):
-        self.MPU6050_address = the_MPU6050_address
+    def __init__(self, the_MPU6050_ADDR, the_alpha):
+        self.MPU6050_ADDR = the_MPU6050_ADDR
         self.alpha = the_alpha
         self.euler_state = np.array([0.0, 0.0])
         self.accel_data = np.array([0.0, 0.0, 0.0])
@@ -23,9 +23,8 @@ class IMU(object):
         # the minimum input
         self.output_min = 0.0
 
-        # time in between PID update intervals (ms)
-        self.sample_time = 1000
-
+        # time in between PID update intervals
+        self.sample_time = 1.0
         # time it takes to complete one PID loop
         self.actual_time_length_of_PID_loop = 0.0
 
@@ -188,7 +187,7 @@ class IMU(object):
 
     def setupMPU6050(self, pi):
         # opens connection at I2C bus 1
-        mpu6050_handler = pi.i2c_open(1, self.MPU6050_address, 0)
+        mpu6050_handler = pi.i2c_open(1, self.MPU6050_ADDR, 0)
 
         # Configure things as done in:
         # https://github.com/tockn/MPU6050_tockn/blob/master/src/MPU6050_tockn.cpp

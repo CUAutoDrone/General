@@ -1,5 +1,3 @@
-import numpy as np
-
 
 # a class representing the motors
 class Motor(object):
@@ -12,7 +10,6 @@ class Motor(object):
         # PWM frequency in Hz
         self.PWM_frequency = PWM_frequency
 
-    # maps the motor_output to each motor
     @staticmethod
     def map_motor_output(ctrl):
         throttle = ctrl[0]
@@ -24,9 +21,8 @@ class Motor(object):
         m2 = throttle - roll - pitch + yawrate
         m3 = throttle + roll - pitch - yawrate
         m4 = throttle + roll + pitch + yawrate
-        return Motor.minMax(np.array([m1, m2, m3, m4]), 1.0, 2.0)
+        return Motor.minMax(np.array([m1, m2, m3, m4]), 1, 2)
 
-    # ensures vector stays within minimum and maximum boundaries
     @staticmethod
     def minMax(vec, min, max):
         for i in range(0, np.size(vec)):

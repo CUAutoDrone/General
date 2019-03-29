@@ -29,15 +29,15 @@ l = 960
 # width of GUI
 w = 640
 
-# # receiver created with receiver channels gpio pin numbers initialized
-# receiver = Receiver(17, 27, 22, 18, 23)
-# # IMU created with MPU6050 address, alpha initialized
-# imu = IMU(0x68, 0.98)
-# # motors created with motor gpio pin numbers initialized
-# motor = Motor(10, 9, 25, 8, 400.0)
-# # initialize the flight controller
-# fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
-#                       np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
+# receiver created with receiver channels gpio pin numbers initialized
+receiver = Receiver(17, 27, 22, 18, 23)
+# IMU created with MPU6050 address, alpha initialized
+imu = IMU(0x68, 0.98)
+# motors created with motor gpio pin numbers initialized
+motor = Motor(10, 9, 25, 8, 400.0)
+# initialize the flight controller
+fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
+                       np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
 
 # TODO: need to receive information from RPi, not the current script
 class DroneGUI(QDialog):
@@ -1019,7 +1019,7 @@ class DroneGUI(QDialog):
         self.mpu_address.move(95, 374)
         self.mpu_address.resize(30, 12)
         self.mpu_address.show()
-        self.mpu_address.setText(str(fc.imu.MPU6050_address))
+        self.mpu_address.setText(str(fc.imu.mpu6050_handle))
 
         # sample time
         self.sample_time_label = QPushButton("Sample Time (ms)", self.window)

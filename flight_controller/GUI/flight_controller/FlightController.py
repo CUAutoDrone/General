@@ -12,7 +12,7 @@ class FlightController(object):
     # initialize proportional gain, integral gain, derivative gain
     # boolean variable to determine if device is armed
     def __init__(self, kp_gain=np.array, ki_gain=np.array, kd_gain=np.array, the_receiver=Receiver,
-                 the_imu=IMU, the_motor=Motor, ip="192.168.X.X"):
+                 the_imu=IMU, the_motor=Motor):
         self.Kp = kp_gain
         self.Ki = ki_gain
         self.Kd = kd_gain
@@ -23,7 +23,6 @@ class FlightController(object):
         self.pi = None
         self.pi_online = False
         self.motor_output = np.array([0.0,0.0,0.0,0.0])
-        self.ip = ip
 
     # getter for armed status
     @property
@@ -98,9 +97,6 @@ class FlightController(object):
     # TODO: pre-flight check list
     # goes through list of Pre-Flight Checks
     def pre_flight_checks(self):
-        print('###########')
-        print('Beginning Pre-Flight Checklist')
-        print('###########')
         passed = False
         # ensure the pi is connected
         if self.pi.connected():
@@ -119,7 +115,7 @@ class FlightController(object):
     def compute_PID(self):
 
         # begin the thread
-        threading.Timer((self.imu.sample_time / 1000), self.compute_PID).start()
+        threading.Timer(self.imu.sample_time, self.compute_PID).start()
 
         # used to determine how long one iteration of the method takes
         start_time = self.pi.get_current_tick()
