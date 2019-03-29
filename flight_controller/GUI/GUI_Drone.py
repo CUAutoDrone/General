@@ -4,6 +4,7 @@ try:
     from multiprocessing import Queue
     import numpy as np
     import pyqtgraph as pg
+    import paramiko
 
     from PyQt5.QtCore import QObject, pyqtSignal, QRect, QSize, Qt, QTimer, QTime, QEvent
     from PyQt5.QtGui import QFont, QPalette, QColor, QDoubleValidator, QTextCursor, QPixmap, QIcon, QWindow
@@ -28,26 +29,25 @@ l = 960
 # width of GUI
 w = 640
 
-# receiver created with receiver channels gpio pin numbers initialized
-receiver = Receiver(17, 27, 22, 18, 23)
-# IMU created with MPU6050 address, alpha initialized
-imu = IMU(0x68, 0.98)
-# motors created with motor gpio pin numbers initialized
-motor = Motor(10, 9, 25, 8, 400.0)
-# initialize the flight controller
-fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
-                      np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
+# # receiver created with receiver channels gpio pin numbers initialized
+# receiver = Receiver(17, 27, 22, 18, 23)
+# # IMU created with MPU6050 address, alpha initialized
+# imu = IMU(0x68, 0.98)
+# # motors created with motor gpio pin numbers initialized
+# motor = Motor(10, 9, 25, 8, 400.0)
+# # initialize the flight controller
+# fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
+#                       np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
 
-
-# TODO:
-# buttons to have drone perform certain maneuvers (need further guidance)
-
-
+# TODO: need to receive information from RPi, not the current script
 class DroneGUI(QDialog):
     global l, w
 
     def __init__(self, parent=None):
         super(DroneGUI, self).__init__(parent)
+
+        # creates the terminal
+        self.create_terminal()
 
         # create tabs
         self.create_tabs()
@@ -59,7 +59,7 @@ class DroneGUI(QDialog):
         self.create_palette()
 
         # adds the arm, kill, unarm buttons
-        self.create_arm_kill_buttons()
+        # self.create_arm_kill_buttons()
 
         # adds the PID insert text boxes
         self.create_PID_insert()
@@ -92,48 +92,106 @@ class DroneGUI(QDialog):
         # set up about tab
         self.show_about_info()
 
-    # filters space bar to allow it to be a killswitch only
-    # filters 'a' to allow it to arm the drone only
+        # commands currently allowed
+        self.accepted_commands = {"connect", "arm", "kill", "forward",
+                                  "altitude", "vehicle status", "pi status"}
+
+        # accepted IPs for the Raspberry Pi
+        self.accepted_ips = {"192.168.1.1"}
+
+        self.ssh_client = None
+
+
     def eventFilter(self, obj, event):
         if event.type() == QEvent.KeyPress:
-            if event.key() == Qt.Key_Space:
-                if self.arm_button.isChecked():
-                    print("KILL SWITCH ACTIVATED")
-                    self.arm_button.toggle()
-                    self.arm_button.setEnabled(False)
-                    self.undo_killswitch_button.setEnabled(True)
-                    self.undo_killswitch_button.setStyleSheet("background-color: yellow; color:black")
-                    self.arm_button.setStyleSheet("background-color: Gray")
-                    self.killswitch_button.setEnabled(False)
-                    self.killswitch_button.setStyleSheet("background-color: Darkred; color:black")
-                    self.curr_status.setStyleSheet("background-color: #922B3E;")
-                    self.curr_status.setText("Inactive")
-                    self.flight_timer.stop()
-                    # fc.receiver.ARM = False
-                    return True
-                else:
-                    return True
-            if event.key() == Qt.Key_A:
-                if not(self.arm_button.isChecked()):
-                    print()
-                    print("Initialize Arming Process")
-                    self.arm_button.setStyleSheet("background-color: Green")
-                    self.undo_killswitch_button.setEnabled(False)
-                    self.killswitch_button.setEnabled(True)
-                    self.killswitch_button.setStyleSheet("background-color: red")
-                    self.undo_killswitch_button.setStyleSheet("background-color:rgb(53,53,53);")
-                    self.arm_button.setEnabled(False)
-                    self.arm_button.setChecked(True)
-                    self.curr_status.setStyleSheet("background-color: #507D2A")
-                    self.curr_status.setText("Active")
-                    self.flight_timer.start(1000)
-                    # Since we're skipping the unlock arm button,
-                    # fc.run()
-                    return True
-                else:
-                    return True
+            if event.key() == Qt.Key_Return:
+                x = self.term.toPlainText().strip()
+                split = x.split(' ')
+                if split[0] in self.accepted_commands:
+                        if split[0] == "connect":
+                            if len(split) > 1:
+                                if split[1] in self.accepted_ips:
+                                    print("> Connecting RPi...")
+                                    print("=> " + split[1])
+                                    self.ssh_client = self.connect_to_pi(split[1], 22, 'admin')
+                        elif split[0] == "arm":
+                            print("> Arming...")
+                            # self.executeCommand(self.ssh_client, 'python ./RPi_FC.py')
+                self.term.clear()
         return super(DroneGUI, self).eventFilter(obj, event)
 
+
+    # filters space bar to allow it to be a killswitch only
+    # filters 'a' to allow it to arm the drone only
+    #def eventFilter(self, obj, event):
+    #     if event.type() == QEvent.KeyPress:
+    #         if event.key() == Qt.Key_Space:
+    #             if self.arm_button.isChecked():
+    #                 print("KILL SWITCH ACTIVATED")
+    #                 self.arm_button.toggle()
+    #                 self.arm_button.setEnabled(False)
+    #                 self.undo_killswitch_button.setEnabled(True)
+    #                 self.undo_killswitch_button.setStyleSheet("background-color: yellow; color:black")
+    #                 self.arm_button.setStyleSheet("background-color: Gray")
+    #                 self.killswitch_button.setEnabled(False)
+    #                 self.killswitch_button.setStyleSheet("background-color: Darkred; color:black")
+    #                 self.curr_status.setStyleSheet("background-color: #922B3E;")
+    #                 self.curr_status.setText("Inactive")
+    #                 self.flight_timer.stop()
+    #                 # fc.receiver.ARM = False
+    #                 return True
+    #             else:
+    #                 return True
+    #         if event.key() == Qt.Key_A:
+    #             if not(self.arm_button.isChecked()):
+    #                 print()
+    #                 print("Initialize Arming Process...")
+    #                 self.arm_button.setStyleSheet("background-color: Green")
+    #                 self.undo_killswitch_button.setEnabled(False)
+    #                 self.killswitch_button.setEnabled(True)
+    #                 self.killswitch_button.setStyleSheet("background-color: red")
+    #                 self.undo_killswitch_button.setStyleSheet("background-color:rgb(53,53,53);")
+    #                 self.arm_button.setEnabled(False)
+    #                 self.arm_button.setChecked(True)
+    #                 self.curr_status.setStyleSheet("background-color: #507D2A")
+    #                 self.curr_status.setText("Active")
+    #                 self.flight_timer.start(1000)
+    #                 # Since we're skipping the unlock arm button,
+    #                 # fc.run()
+    #                 return True
+    #             else:
+    #                 return True
+    #     return super(DroneGUI, self).eventFilter(obj, event)
+
+    # Connects to the IP using a port, username, and password via SSH.
+    def connect_to_pi(self, ip, port, username, password="raspberry"):
+        sshClient = paramiko.SSHClient()
+        sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        sshClient.load_system_host_keys()
+        try:
+            sshClient.connect(ip, port, username, password, timeout=10)
+        except Exception as e:
+            print(e)
+            sshClient.connect(ip + ".local", port, username, password)
+
+        return sshClient
+
+    # Takes in an sshClient and sends the command to it
+    def executeCommand(sshClient, command):
+        stdin, stdout, stderr = sshClient.exec_command(command)
+        print("> COMMAND:", command)
+
+    # creates a log for the command line output
+    def create_terminal(self):
+        self.term = QTextEdit(self)
+        self.term.move(l-260, 20)
+        self.term.setFixedSize(260,22)
+        self.term.setFixedHeight(18)
+        self.term.moveCursor(QTextCursor.Start)
+        self.term.setReadOnly(False)
+        self.term.setCursorWidth(4)
+
+    # resizes the GUI
     def set_size_policy(self):
         self.sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.sizePolicy.setHorizontalStretch(0)
@@ -143,6 +201,7 @@ class DroneGUI(QDialog):
         self.setMaximumSize(l, w)
         self.setMinimumSize(l, w)
 
+    # Creates the tabs
     def create_tabs(self):
         self.tabWidget = QTabWidget(self)
         self.tabWidget.setGeometry(QRect(0, 150, l-260,w-100 ))
@@ -165,6 +224,7 @@ class DroneGUI(QDialog):
         self.tabWidget.addTab(self.about_tab, "About")
         self.tabWidget.show()
 
+    # Defines the palette colors
     def create_palette(self):
         self.setWindowTitle("Flight Controller")
         app.setStyle("Fusion")
@@ -185,49 +245,49 @@ class DroneGUI(QDialog):
         dark_palette.setColor(QPalette.HighlightedText, Qt.black)
         app.setPalette(dark_palette)
 
-    # create buttons to arm, and kill, and un-kill the drone
-    def create_arm_kill_buttons(self):
-        # button to arm the drone
-        self.arm_button = QPushButton('ARM', self)
-        self.arm_button.setDefault(False)
-        self.arm_button.setAutoDefault(False)
-        self.arm_button.setStyleSheet("background-color: green")
-        self.arm_button.move(0, 0)
-        self.arm_button.resize(70, 43)
-        self.arm_button.setFont(QFont("Helvetica", 17.5))
-        self.arm_button.setCheckable(True)
-        self.arm_button.setEnabled(True)
-        self.arm_button.clicked.connect(self.arm_drone)
-        self.arm_button.setShortcut("A")
-
-        # button to kill the drone
-        self.killswitch_button = QPushButton('KILL SWITCH', self)
-        self.killswitch_button.move(l-110, 0)
-        self.killswitch_button.setDefault(False)
-        self.killswitch_button.setAutoDefault(False)
-        self.killswitch_button.setFont(QFont("Helvetica", 17.0))
-        self.killswitch_button.resize(110, 60)
-        self.killswitch_button.clicked.connect(self.kill_motor)
-        self.killswitch_button.setStyleSheet("background-color: red")
-        self.killswitch_button.setEnabled(False)
-        self.killswitch_button.setShortcut("Space")
-
-        # button to undo kill switch
-        self.undo_killswitch_button = QPushButton('Unlock ARM', self)
-        self.undo_killswitch_button.setDefault(False)
-        self.undo_killswitch_button.setAutoDefault(False)
-        self.undo_killswitch_button.move(l-110, 62)
-        self.undo_killswitch_button.setFont(QFont("Helvetica", 12))
-        self.undo_killswitch_button.resize(75, 30)
-        self.undo_killswitch_button.clicked.connect(self.undo_killswitch)
-        self.undo_killswitch_button.setStyleSheet("background-color:rgb(53,53,53);")
-        self.undo_killswitch_button.setEnabled(False)
-
-        # button to exit the application
-        self.exit_app_button = QPushButton('exit', self)
-        self.exit_app_button.resize(0,0)
-        self.exit_app_button.setShortcut("Shift+Q")
-        self.exit_app_button.clicked.connect(self.exit_application)
+    # # create buttons to arm, and kill, and un-kill the drone
+    # def create_arm_kill_buttons(self):
+    #     # button to arm the drone
+    #     self.arm_button = QPushButton('ARM', self)
+    #     self.arm_button.setDefault(False)
+    #     self.arm_button.setAutoDefault(False)
+    #     self.arm_button.setStyleSheet("background-color: green")
+    #     self.arm_button.move(0, 0)
+    #     self.arm_button.resize(70, 43)
+    #     self.arm_button.setFont(QFont("Helvetica", 17.5))
+    #     self.arm_button.setCheckable(True)
+    #     self.arm_button.setEnabled(True)
+    #     self.arm_button.clicked.connect(self.arm_drone)
+    #     self.arm_button.setShortcut("A")
+    #
+    #     # button to kill the drone
+    #     self.killswitch_button = QPushButton('KILL SWITCH', self)
+    #     self.killswitch_button.move(l-110, 0)
+    #     self.killswitch_button.setDefault(False)
+    #     self.killswitch_button.setAutoDefault(False)
+    #     self.killswitch_button.setFont(QFont("Helvetica", 17.0))
+    #     self.killswitch_button.resize(110, 60)
+    #     self.killswitch_button.clicked.connect(self.kill_motor)
+    #     self.killswitch_button.setStyleSheet("background-color: red")
+    #     self.killswitch_button.setEnabled(False)
+    #     self.killswitch_button.setShortcut("Space")
+    #
+    #     # button to undo kill switch
+    #     self.undo_killswitch_button = QPushButton('Unlock ARM', self)
+    #     self.undo_killswitch_button.setDefault(False)
+    #     self.undo_killswitch_button.setAutoDefault(False)
+    #     self.undo_killswitch_button.move(l-110, 62)
+    #     self.undo_killswitch_button.setFont(QFont("Helvetica", 12))
+    #     self.undo_killswitch_button.resize(75, 30)
+    #     self.undo_killswitch_button.clicked.connect(self.undo_killswitch)
+    #     self.undo_killswitch_button.setStyleSheet("background-color:rgb(53,53,53);")
+    #     self.undo_killswitch_button.setEnabled(False)
+    #
+    #     # button to exit the application
+    #     self.exit_app_button = QPushButton('exit', self)
+    #     self.exit_app_button.resize(0,0)
+    #     self.exit_app_button.setShortcut("Shift+Q")
+    #     self.exit_app_button.clicked.connect(self.exit_application)
 
 
     # killswitch for the drone
@@ -269,7 +329,7 @@ class DroneGUI(QDialog):
         self.curr_status.setText("Active")
         # fc.run()
 
-    # displays current drone details
+    # displays current drone information
     def drone_information(self):
         # widget for the drone status section
         self.drone_status = QWidget(self.settings_tab)
@@ -537,9 +597,12 @@ class DroneGUI(QDialog):
     # create a live motor output plot graph
     def create_motor_output_plot(self):
         self.motor_output_plot_graph_is_open = True
-        # legend
+        # widget for the motor output graph
+        self.motor_output_graph_widget = QWidget(self.data_tab)
+        self.motor_output_graph_widget.resize(l - 260, w - 100)
+        self.motor_output_graph_widget.show()
         # motor 1 output title
-        self.motor_1_output_title = QPushButton("Motor 1 Output", self.data_tab)
+        self.motor_1_output_title = QPushButton("Motor 1 Output", self.motor_output_graph_widget)
         self.motor_1_output_title.move(l - 400, 60)
         self.motor_1_output_title.setStyleSheet("background: black; color: gray;")
         self.motor_1_output_title.setEnabled(False)
@@ -548,14 +611,14 @@ class DroneGUI(QDialog):
         self.motor_1_output_title.setFont(QFont("Helvetica", 11.5))
         self.motor_1_output_title.show()
 
-        self.motor_1_output_title_color = QLabel(self.data_tab)
+        self.motor_1_output_title_color = QLabel(self.motor_output_graph_widget)
         self.motor_1_output_title_color.setPixmap(QPixmap('Images/Icons/red_square.png'))
         self.motor_1_output_title_color.move(l - 413, 60)
         self.motor_1_output_title_color.show()
 
         # motor 2 output title
-        self.motor_2_output_title = QPushButton("Motor 2 Output", self.data_tab)
-        self.motor_2_output_title_color = QLabel(self.data_tab)
+        self.motor_2_output_title = QPushButton("Motor 2 Output", self.motor_output_graph_widget)
+        self.motor_2_output_title_color = QLabel(self.motor_output_graph_widget)
         self.motor_2_output_title_color.setPixmap(QPixmap('Images/Icons/blue_square.png'))
         self.motor_2_output_title_color.move(l - 413, 90)
         self.motor_2_output_title_color.show()
@@ -568,8 +631,8 @@ class DroneGUI(QDialog):
         self.motor_2_output_title.show()
 
         # motor 3 output title
-        self.motor_3_output_title = QPushButton("Motor 3 Output", self.data_tab)
-        self.motor_3_output_title_color = QLabel(self.data_tab)
+        self.motor_3_output_title = QPushButton("Motor 3 Output", self.motor_output_graph_widget)
+        self.motor_3_output_title_color = QLabel(self.motor_output_graph_widget)
         self.motor_3_output_title_color.setPixmap(QPixmap('Images/Icons/yellow_square.png'))
         self.motor_3_output_title_color.move(l - 413, 120)
         self.motor_3_output_title_color.show()
@@ -582,8 +645,8 @@ class DroneGUI(QDialog):
         self.motor_3_output_title.show()
 
         # motor 4 output title
-        self.motor_4_output_title = QPushButton("Motor 4 Output", self.data_tab)
-        self.motor_4_output_title_color = QLabel(self.data_tab)
+        self.motor_4_output_title = QPushButton("Motor 4 Output", self.motor_output_graph_widget)
+        self.motor_4_output_title_color = QLabel(self.motor_output_graph_widget)
         self.motor_4_output_title_color.setPixmap(QPixmap('Images/Icons/purple_square.png'))
         self.motor_4_output_title_color.move(l - 413, 150)
         self.motor_4_output_title_color.show()
@@ -596,31 +659,31 @@ class DroneGUI(QDialog):
         self.motor_4_output_title.show()
 
         # motor 1 output
-        self.motor_1_output = QLabel(str(fc.motor_output[0]), self.data_tab)
+        self.motor_1_output = QLabel(str(fc.motor_output[0]), self.motor_output_graph_widget)
         self.motor_1_output.move(l - 395, 75)
         self.motor_1_output.resize(70, 12)
         self.motor_1_output.show()
 
         # motor 2 output
-        self.motor_2_output = QLabel(str(fc.motor_output[1]), self.data_tab)
+        self.motor_2_output = QLabel(str(fc.motor_output[1]), self.motor_output_graph_widget)
         self.motor_2_output.move(l - 395, 105)
         self.motor_2_output.resize(70, 12)
         self.motor_2_output.show()
 
         # motor 3 output
-        self.motor_3_output = QLabel(str(fc.motor_output[2]), self.data_tab)
+        self.motor_3_output = QLabel(str(fc.motor_output[2]), self.motor_output_graph_widget)
         self.motor_3_output.move(l - 395, 135)
         self.motor_3_output.resize(70, 12)
         self.motor_3_output.show()
 
         # motor 4 output
-        self.motor_4_output = QLabel(str(fc.motor_output[3]), self.data_tab)
+        self.motor_4_output = QLabel(str(fc.motor_output[3]), self.motor_output_graph_widget)
         self.motor_4_output.move(l - 395, 165)
         self.motor_4_output.resize(70, 12)
         self.motor_4_output.show()
 
 
-        self.pw = pg.PlotWidget(self.data_tab)
+        self.pw = pg.PlotWidget(self.motor_output_graph_widget)
         self.pw.showGrid(x=True,y=True)
         self.pw.setTitle('Live Update Graph (demonstration with sin function)')
         self.pw.move(0,20)
@@ -633,7 +696,7 @@ class DroneGUI(QDialog):
         self.pw.setYRange(-2,2)
         self.timer = pg.QtCore.QTimer(self)
 
-        self.stop_plot_button = QPushButton("Pause", self.data_tab)
+        self.stop_plot_button = QPushButton("Pause", self.motor_output_graph_widget)
         self.stop_plot_button.setStyleSheet("background-color:#002366;")
         self.stop_plot_button.setIcon(QIcon('Images/Icons/stop.png'))
         self.stop_plot_button.clicked.connect(self.timer.stop)
@@ -641,7 +704,7 @@ class DroneGUI(QDialog):
         self.stop_plot_button.move(20, 0)
         self.stop_plot_button.show()
 
-        self.start_plot_button = QPushButton("Start", self.data_tab)
+        self.start_plot_button = QPushButton("Start", self.motor_output_graph_widget)
         self.start_plot_button.setIcon(QIcon('Images/Icons/play.png'))
         self.start_plot_button.resize(80,20)
         self.start_plot_button.setStyleSheet("background-color:#002366;")
@@ -707,7 +770,7 @@ class DroneGUI(QDialog):
 
     def get_sensor_value(self):
 
-        # get's the sensor value
+        # get's the motor output values
         if self.motor_output_plot_graph_is_open is True:
             self.motor_1_output.setText(str(fc.motor_output[0]))
             self.motor_2_output.setText(str(fc.motor_output[1]))
@@ -731,13 +794,17 @@ class DroneGUI(QDialog):
 
     # creates labels for the flight motion patterns
     def create_flight_motion_labels(self):
-        self.flight_motion_label = QLabel(self.flight_pattern_tab)
+        # Widget for the flight pattern buttons
+        self.flight_pattern_widget = QWidget(self.flight_pattern_tab)
+        self.flight_pattern_widget.resize(200,200)
+
+        self.flight_motion_label = QLabel(self.flight_pattern_widget)
         self.flight_motion_label.setFrameShape(QFrame.StyledPanel)
         self.flight_motion_label.setFrameShadow(QFrame.Raised)
         self.flight_motion_label.move(2,20)
         self.flight_motion_label.setText("Flight Motion Pattern")
 
-        self.square_pattern = QPushButton("Square", self.flight_pattern_tab)
+        self.square_pattern = QPushButton("Square", self.flight_pattern_widget)
         self.square_pattern.setIcon(QIcon('Images/Icons/square.png'))
         self.square_pattern.move(2,35)
         self.square_pattern.clicked.connect(self.do_square_pattern)
@@ -1074,7 +1141,6 @@ class DroneGUI(QDialog):
         self.cu_img.show()
 
 
-
 # a class to read the command line output stream
 class Stream(QObject):
     newText = pyqtSignal(str)
@@ -1089,11 +1155,6 @@ class Stream(QObject):
 def welcome_message():
     print("Cornell University Aerial Robotics 2019")
     print("                                       Version: ", version_number)
-    print('################################')
-    print("-    Press 'A' to Arm                         ####")
-    print("-    Press 'Spacebar' to Kill Switch  ####")
-    print("-    Press Shift + 'Q' to exit              ####")
-    print('################################')
 
 
 if __name__ == '__main__':
