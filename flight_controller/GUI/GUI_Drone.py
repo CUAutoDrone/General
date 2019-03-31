@@ -10,7 +10,7 @@ try:
     from PyQt5.QtGui import QFont, QPalette, QColor, QDoubleValidator, QTextCursor, QPixmap, QIcon, QWindow
     from PyQt5.QtWidgets import QApplication, QPushButton, QLabel, QDialog, QTabWidget, \
         QWidget, QSizePolicy, QLineEdit, QFrame, QTextEdit, qApp
-    from flight_controller import *
+
 except ImportError as e:
     print("Import Error has occurred. Make sure you have all the packages and modules installed.")
     print("Visit https://github.com/CornellAerialRobotics/General/blob/master/flight_controller/"
@@ -28,16 +28,6 @@ l = 960
 
 # width of GUI
 w = 640
-
-# receiver created with receiver channels gpio pin numbers initialized
-receiver = Receiver(17, 27, 22, 18, 23)
-# IMU created with MPU6050 address, alpha initialized
-imu = IMU(0x68, 0.98)
-# motors created with motor gpio pin numbers initialized
-motor = Motor(10, 9, 25, 8, 400.0)
-# initialize the flight controller
-fc = FlightController(np.array([0.1, 0.2, 0.3]), np.array([0.4, 0.5, 0.6]),
-                       np.array([0.7, 0.8, 0.9]), receiver, imu, motor)
 
 # TODO: need to receive information from RPi, not the current script
 class DroneGUI(QDialog):
@@ -398,125 +388,125 @@ class DroneGUI(QDialog):
 
     # gets the current updated PID values
     def get_PID_value(self):
-        try:
-            fc.Kp = np.array([float(self.Kp0_textbox.text()), float(self.Kp1_textbox.text()), float(self.Kp2_textbox.text())])
-            fc.Ki = np.array([float(self.Ki0_textbox.text()), float(self.Ki1_textbox.text()), float(self.Ki2_textbox.text())])
-            fc.Kd = np.array([float(self.Kd0_textbox.text()), float(self.Kd1_textbox.text()), float(self.Kd2_textbox.text())])
-        except(ValueError):
-            print("Error: Must input values into each coordinate.")
-        else:
-            print()
-            print(time.strftime("   %H:%M:%S %Z"))
-            print("Update PID Gains")
-            print("P:    ", fc.Kp[0], " ", fc.Kp[1], " ", fc.Kp[2])
-            print("I :    ", fc.Ki[0], " ", fc.Ki[1], " ", fc.Ki[2])
-            print("D:    ", fc.Kd[0], " ", fc.Kd[1], " ", fc.Kd[2])
+        # try:
+        #     fc.Kp = np.array([float(self.Kp0_textbox.text()), float(self.Kp1_textbox.text()), float(self.Kp2_textbox.text())])
+        #     fc.Ki = np.array([float(self.Ki0_textbox.text()), float(self.Ki1_textbox.text()), float(self.Ki2_textbox.text())])
+        #     fc.Kd = np.array([float(self.Kd0_textbox.text()), float(self.Kd1_textbox.text()), float(self.Kd2_textbox.text())])
+        # except(ValueError):
+        #     print("Error: Must input values into each coordinate.")
+        # else:
+        #     print()
+        #     print(time.strftime("   %H:%M:%S %Z"))
+        #     print("Update PID Gains")
+        #     print("P:    ", fc.Kp[0], " ", fc.Kp[1], " ", fc.Kp[2])
+        #     print("I :    ", fc.Ki[0], " ", fc.Ki[1], " ", fc.Ki[2])
+        #     print("D:    ", fc.Kd[0], " ", fc.Kd[1], " ", fc.Kd[2])
             print()
 
     # creates the PID text boxes, button for updating PID values
     def create_PID_insert(self):
-
+        print()
         # widget for PID insertion
-        self.PID_widget = QWidget(self.settings_tab)
-        self.PID_widget.resize(300,200)
-        self.PID_widget.move(10,20)
-        # proportional text
-        self.onlyDouble = QDoubleValidator()
-        self.Kp0_textbox = QLineEdit(self.PID_widget)
-        self.Kp0_textbox.clearFocus()
-        self.Kp0_textbox.setValidator(self.onlyDouble)
-        self.Kp0_textbox.resize(50, 23)
-        self.Kp0_textbox.setText(str(fc.Kp[0]))
-        self.Kp1_textbox = QLineEdit(self.PID_widget)
-        self.Kp1_textbox.setValidator(self.onlyDouble)
-        self.Kp1_textbox.resize(50, 23)
-        self.Kp1_textbox.move(50,0)
-        self.Kp1_textbox.setText(str(fc.Kp[1]))
-        self.Kp2_textbox = QLineEdit(self.PID_widget)
-        self.Kp2_textbox.setValidator(self.onlyDouble)
-        self.Kp2_textbox.resize(50, 23)
-        self.Kp2_textbox.move(100, 0)
-        self.Kp2_textbox.setText(str(fc.Kp[2]))
-        # proportional label
-        self.Kp_label = QLabel(self.PID_widget)
-        self.Kp_label.setText('Proportional')
-        self.Kp_label.move(150, 0)
-        self.Kp_label.resize(85, 23)
-        self.Kp_label.setFrameShape(QFrame.Panel)
-        self.Kp_label.setFrameShadow(QFrame.Sunken)
-        self.Kp_label.setLineWidth(3)
-        self.Kp_label.setStyleSheet("background-color:rgb(53,53,53);")
-
-        # integral text
-        self.Ki0_textbox = QLineEdit(self.PID_widget)
-        self.Ki0_textbox.move(0, 27)
-        self.Ki0_textbox.resize(50, 23)
-        self.Ki0_textbox.setValidator(self.onlyDouble)
-        self.Ki0_textbox.setText(str(fc.Ki[0]))
-        self.Ki1_textbox = QLineEdit(self.PID_widget)
-        self.Ki1_textbox.move(50, 27)
-        self.Ki1_textbox.resize(50, 23)
-        self.Ki1_textbox.setValidator(self.onlyDouble)
-        self.Ki1_textbox.setText(str(fc.Ki[1]))
-        self.Ki2_textbox = QLineEdit(self.PID_widget)
-        self.Ki2_textbox.move(100, 27)
-        self.Ki2_textbox.resize(50, 23)
-        self.Ki2_textbox.setValidator(self.onlyDouble)
-        self.Ki2_textbox.setText(str(fc.Ki[2]))
-        # integral label
-        self.Ki_label = QLabel(self.PID_widget)
-        self.Ki_label.setText('Integral')
-        self.Ki_label.move(150, 27)
-        self.Ki_label.resize(85, 23)
-        self.Ki_label.setFrameShape(QFrame.Panel)
-        self.Ki_label.setFrameShadow(QFrame.Sunken)
-        self.Ki_label.setLineWidth(3)
-        self.Ki_label.setStyleSheet("background-color:rgb(53,53,53);")
-
-        # derivative text
-        self.Kd0_textbox = QLineEdit(self.PID_widget)
-        self.Kd0_textbox.move(0, 54)
-        self.Kd0_textbox.resize(50, 23)
-        self.Kd0_textbox.setValidator(self.onlyDouble)
-        self.Kd0_textbox.setText(str(fc.Kd[0]))
-        self.Kd1_textbox = QLineEdit(self.PID_widget)
-        self.Kd1_textbox.move(50, 54)
-        self.Kd1_textbox.resize(50, 23)
-        self.Kd1_textbox.setValidator(self.onlyDouble)
-        self.Kd1_textbox.setText(str(fc.Kd[1]))
-        self.Kd2_textbox = QLineEdit(self.PID_widget)
-        self.Kd2_textbox.move(100, 54)
-        self.Kd2_textbox.resize(50, 23)
-        self.Kd2_textbox.setValidator(self.onlyDouble)
-        self.Kd2_textbox.setText(str(fc.Kd[2]))
-        # derivative label
-        self.Kd_label = QLabel(self.PID_widget)
-        self.Kd_label.resize(85, 23)
-        self.Kd_label.setText('Derivative')
-        self.Kd_label.move(150, 54)
-        self.Kd_label.setFrameShape(QFrame.Panel)
-        self.Kd_label.setFrameShadow(QFrame.Sunken)
-        self.Kd_label.setLineWidth(3)
-        self.Kd_label.setStyleSheet("background-color:rgb(53,53,53);")
-
-        # button to insert new PID values
-        self.insert_PID_values = QPushButton("Insert PID Gains", self.PID_widget)
-        self.insert_PID_values.setStyleSheet("background-color:	#002366;")
-        self.insert_PID_values.move(150, 80)
-        self.insert_PID_values.resize(85, 25)
-        self.insert_PID_values.setFont(QFont("Helvetica", 11.5))
-        self.insert_PID_values.setCheckable(True)
-        self.insert_PID_values.setEnabled(True)
-        self.insert_PID_values.clicked.connect(self.get_PID_value)
-
-        # label for Roll, Pitch, Yaw
-        self.RPY = QLabel(self.PID_widget)
-        self.RPY.move(0,80)
-        self.RPY.setText(' Roll        Pitch         Yaw  ')
-        self.RPY.setFrameShape(QFrame.Panel)
-        self.RPY.setFrameShadow(QFrame.Sunken)
-        self.RPY.setLineWidth(3)
-        self.RPY.setStyleSheet("background-color:rgb(53,53,53);")
+        # self.PID_widget = QWidget(self.settings_tab)
+        # self.PID_widget.resize(300,200)
+        # self.PID_widget.move(10,20)
+        # # proportional text
+        # self.onlyDouble = QDoubleValidator()
+        # self.Kp0_textbox = QLineEdit(self.PID_widget)
+        # self.Kp0_textbox.clearFocus()
+        # self.Kp0_textbox.setValidator(self.onlyDouble)
+        # self.Kp0_textbox.resize(50, 23)
+        # self.Kp0_textbox.setText(str(fc.Kp[0]))
+        # self.Kp1_textbox = QLineEdit(self.PID_widget)
+        # self.Kp1_textbox.setValidator(self.onlyDouble)
+        # self.Kp1_textbox.resize(50, 23)
+        # self.Kp1_textbox.move(50,0)
+        # self.Kp1_textbox.setText(str(fc.Kp[1]))
+        # self.Kp2_textbox = QLineEdit(self.PID_widget)
+        # self.Kp2_textbox.setValidator(self.onlyDouble)
+        # self.Kp2_textbox.resize(50, 23)
+        # self.Kp2_textbox.move(100, 0)
+        # self.Kp2_textbox.setText(str(fc.Kp[2]))
+        # # proportional label
+        # self.Kp_label = QLabel(self.PID_widget)
+        # self.Kp_label.setText('Proportional')
+        # self.Kp_label.move(150, 0)
+        # self.Kp_label.resize(85, 23)
+        # self.Kp_label.setFrameShape(QFrame.Panel)
+        # self.Kp_label.setFrameShadow(QFrame.Sunken)
+        # self.Kp_label.setLineWidth(3)
+        # self.Kp_label.setStyleSheet("background-color:rgb(53,53,53);")
+        #
+        # # integral text
+        # self.Ki0_textbox = QLineEdit(self.PID_widget)
+        # self.Ki0_textbox.move(0, 27)
+        # self.Ki0_textbox.resize(50, 23)
+        # self.Ki0_textbox.setValidator(self.onlyDouble)
+        # self.Ki0_textbox.setText(str(fc.Ki[0]))
+        # self.Ki1_textbox = QLineEdit(self.PID_widget)
+        # self.Ki1_textbox.move(50, 27)
+        # self.Ki1_textbox.resize(50, 23)
+        # self.Ki1_textbox.setValidator(self.onlyDouble)
+        # self.Ki1_textbox.setText(str(fc.Ki[1]))
+        # self.Ki2_textbox = QLineEdit(self.PID_widget)
+        # self.Ki2_textbox.move(100, 27)
+        # self.Ki2_textbox.resize(50, 23)
+        # self.Ki2_textbox.setValidator(self.onlyDouble)
+        # self.Ki2_textbox.setText(str(fc.Ki[2]))
+        # # integral label
+        # self.Ki_label = QLabel(self.PID_widget)
+        # self.Ki_label.setText('Integral')
+        # self.Ki_label.move(150, 27)
+        # self.Ki_label.resize(85, 23)
+        # self.Ki_label.setFrameShape(QFrame.Panel)
+        # self.Ki_label.setFrameShadow(QFrame.Sunken)
+        # self.Ki_label.setLineWidth(3)
+        # self.Ki_label.setStyleSheet("background-color:rgb(53,53,53);")
+        #
+        # # derivative text
+        # self.Kd0_textbox = QLineEdit(self.PID_widget)
+        # self.Kd0_textbox.move(0, 54)
+        # self.Kd0_textbox.resize(50, 23)
+        # self.Kd0_textbox.setValidator(self.onlyDouble)
+        # self.Kd0_textbox.setText(str(fc.Kd[0]))
+        # self.Kd1_textbox = QLineEdit(self.PID_widget)
+        # self.Kd1_textbox.move(50, 54)
+        # self.Kd1_textbox.resize(50, 23)
+        # self.Kd1_textbox.setValidator(self.onlyDouble)
+        # self.Kd1_textbox.setText(str(fc.Kd[1]))
+        # self.Kd2_textbox = QLineEdit(self.PID_widget)
+        # self.Kd2_textbox.move(100, 54)
+        # self.Kd2_textbox.resize(50, 23)
+        # self.Kd2_textbox.setValidator(self.onlyDouble)
+        # self.Kd2_textbox.setText(str(fc.Kd[2]))
+        # # derivative label
+        # self.Kd_label = QLabel(self.PID_widget)
+        # self.Kd_label.resize(85, 23)
+        # self.Kd_label.setText('Derivative')
+        # self.Kd_label.move(150, 54)
+        # self.Kd_label.setFrameShape(QFrame.Panel)
+        # self.Kd_label.setFrameShadow(QFrame.Sunken)
+        # self.Kd_label.setLineWidth(3)
+        # self.Kd_label.setStyleSheet("background-color:rgb(53,53,53);")
+        #
+        # # button to insert new PID values
+        # self.insert_PID_values = QPushButton("Insert PID Gains", self.PID_widget)
+        # self.insert_PID_values.setStyleSheet("background-color:	#002366;")
+        # self.insert_PID_values.move(150, 80)
+        # self.insert_PID_values.resize(85, 25)
+        # self.insert_PID_values.setFont(QFont("Helvetica", 11.5))
+        # self.insert_PID_values.setCheckable(True)
+        # self.insert_PID_values.setEnabled(True)
+        # self.insert_PID_values.clicked.connect(self.get_PID_value)
+        #
+        # # label for Roll, Pitch, Yaw
+        # self.RPY = QLabel(self.PID_widget)
+        # self.RPY.move(0,80)
+        # self.RPY.setText(' Roll        Pitch         Yaw  ')
+        # self.RPY.setFrameShape(QFrame.Panel)
+        # self.RPY.setFrameShadow(QFrame.Sunken)
+        # self.RPY.setLineWidth(3)
+        # self.RPY.setStyleSheet("background-color:rgb(53,53,53);")
 
     def onUpdateText(self, text):
         cursor = self.log.textCursor()
