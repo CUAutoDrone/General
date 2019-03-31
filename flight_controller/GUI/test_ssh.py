@@ -15,3 +15,4 @@ if __name__ == "__main__":
 # Command to execute script to run the drone
 # In that script, ways to gather data to either Webserver/TCP
 ### - Options: write data to .txt file, read .txt file and copy to Webserver
+# How to send data to the drone?
