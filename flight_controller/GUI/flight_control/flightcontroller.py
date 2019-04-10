@@ -1,6 +1,8 @@
 import pigpio
 import numpy as np
-from flight_controller import *
+from imu import *
+from motor import *
+from receiver import *
 import threading
 import time
 
